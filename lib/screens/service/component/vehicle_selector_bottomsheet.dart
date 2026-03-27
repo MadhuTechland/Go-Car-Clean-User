@@ -1,25 +1,17 @@
 import 'package:booking_system_flutter/component/cached_image_widget.dart';
 import 'package:booking_system_flutter/component/empty_error_state_widget.dart';
+import 'package:booking_system_flutter/component/loader_widget.dart';
 import 'package:booking_system_flutter/main.dart';
 import 'package:booking_system_flutter/model/category_model.dart';
 import 'package:booking_system_flutter/model/dashboard_model.dart';
 import 'package:booking_system_flutter/model/service_data_model.dart';
 import 'package:booking_system_flutter/model/service_detail_response.dart';
 import 'package:booking_system_flutter/network/rest_apis.dart';
-import 'package:booking_system_flutter/screens/dashboard/component/category_component.dart';
-import 'package:booking_system_flutter/screens/dashboard/component/category_component_instance.dart';
-import 'package:booking_system_flutter/screens/dashboard/component/category_extra_vehicle.dart';
-import 'package:booking_system_flutter/screens/filter/filter_screen.dart';
-import 'package:booking_system_flutter/screens/service/component/service_component.dart';
-import 'package:booking_system_flutter/screens/service/service_book.dart';
-import 'package:booking_system_flutter/screens/service/service_detail_screen.dart';
-import 'package:booking_system_flutter/store/filter_store.dart';
-import 'package:booking_system_flutter/utils/common.dart';
-import 'package:booking_system_flutter/utils/images.dart';
-import 'package:booking_system_flutter/utils/string_extensions.dart';
-import 'package:flutter/material.dart';
-import 'package:nb_utils/nb_utils.dart';
+import 'package:booking_system_flutter/utils/colors.dart';
 import 'package:booking_system_flutter/utils/constant.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:nb_utils/nb_utils.dart';
 
 class VehicleSelectorBottomsheet extends StatefulWidget {
   const VehicleSelectorBottomsheet({super.key});
@@ -31,946 +23,816 @@ class VehicleSelectorBottomsheet extends StatefulWidget {
 
 class _VehicleSelectorBottomsheetState
     extends State<VehicleSelectorBottomsheet> {
-  TextEditingController searchCont = TextEditingController();
-  FocusNode myFocusNode = FocusNode();
-  Future<DashboardResponse>? future;
-  CategoryData? selectedCategory;
-Map<int, List<CategoryData>> selectedSubCategory = {};
-Map<int, List<ServiceData>> selectedService = {};
-  Future<List<CategoryData>>? futureSubcategories;
-  List<CategoryData> selectedCategories = [];
-  int page = 1;
-  bool isLastPage = false;
-  int? selectedPlanId;
+  final PageController _pageController = PageController();
+  int _currentStep = 0; // 0-3
+
+  // Data
+  Future<DashboardResponse>? _dashboardFuture;
+  List<CategoryData> _categories = [];
+
+  // Step 1 — Vehicle Type
+  CategoryData? _selectedCategory;
+
+  // Step 2 — Brand (subcategory)
+  Future<List<CategoryData>>? _subcategoryFuture;
+  List<CategoryData> _subcategories = [];
+  CategoryData? _selectedSubCategory;
+
+  // Step 3 — Vehicle (service)
+  Future<List<ServiceData>>? _serviceFuture;
+  List<ServiceData> _services = [];
+  ServiceData? _selectedService;
+
+  // Step 2 — Brand search
+  String _brandSearchQuery = '';
+
+  // Step 4 — Plan
+  ServicePlanData? _selectedPlan;
 
   @override
   void initState() {
     super.initState();
-    filterStore = FilterStore();
-    init();
-  }
-
-  void init() {
-    future = userDashboard(
+    _dashboardFuture = userDashboard(
       isCurrentLocation: appStore.isCurrentLocation,
       lat: getDoubleAsync(LATITUDE),
       long: getDoubleAsync(LONGITUDE),
     );
-    setState(() {});
-  }
-
-  void loadSubcategories(int catId) {
-    futureSubcategories = getSubCategoryListAPI(catId: catId);
-    setState(() {});
-  }
-
-  void fetchAllServiceData() {
-    searchServiceAPI(
-      page: page,
-      list: [],
-      categoryId: selectedCategory != null
-          ? selectedCategory!.id.toString()
-          : filterStore.categoryId.join(','),
-      subCategory: '',
-      providerId: filterStore.providerId.join(","),
-      isPriceMin: filterStore.isPriceMin,
-      isPriceMax: filterStore.isPriceMax,
-      ratingId: filterStore.ratingId.join(','),
-      search: searchCont.text,
-      latitude:
-          appStore.isCurrentLocation ? getDoubleAsync(LATITUDE).toString() : "",
-      longitude: appStore.isCurrentLocation
-          ? getDoubleAsync(LONGITUDE).toString()
-          : "",
-      lastPageCallBack: (p0) {
-        isLastPage = p0;
-      },
-      isFeatured: '',
-    );
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: SnapHelperWidget<DashboardResponse>(
-      future: future,
-      loadingWidget: Loader(),
-      errorBuilder: (error) => NoDataWidget(
-        title: error,
-        imageWidget: ErrorStateWidget(),
-        retryText: language.reload,
-        onRetry: () {
-          appStore.setLoading(true);
-          init();
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _goToStep(int step) {
+    setState(() => _currentStep = step);
+    _pageController.animateToPage(
+      step,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _onCategorySelected(CategoryData cat) {
+    setState(() {
+      _selectedCategory = cat;
+      // Reset downstream
+      _subcategories = [];
+      _selectedSubCategory = null;
+      _services = [];
+      _selectedService = null;
+      _selectedPlan = null;
+      _brandSearchQuery = '';
+    });
+  }
+
+  void _onNext() {
+    if (_currentStep == 0 && _selectedCategory != null) {
+      // Load subcategories then go to step 2
+      _subcategoryFuture =
+          getSubCategoryListAPI(catId: _selectedCategory!.id.validate());
+      _subcategoryFuture!.then((list) {
+        setState(() => _subcategories = list);
+      });
+      _goToStep(1);
+    } else if (_currentStep == 1 && _selectedSubCategory != null) {
+      // Load services then go to step 3
+      _serviceFuture = searchServiceAPI(
+        categoryId: _selectedCategory!.id.toString(),
+        subCategory: _selectedSubCategory!.id.toString(),
+        list: [],
+      );
+      _serviceFuture!.then((list) {
+        setState(() => _services = list);
+      });
+      _goToStep(2);
+    } else if (_currentStep == 2 && _selectedService != null) {
+      _goToStep(3);
+    }
+  }
+
+  void _onBack() {
+    if (_currentStep > 0) {
+      _goToStep(_currentStep - 1);
+    }
+  }
+
+  void _onConfirm() {
+    if (_selectedPlan == null ||
+        _selectedCategory == null ||
+        _selectedService == null) return;
+
+    final result = SelectedVehiclePlan(
+      vehicleType: _selectedCategory!.name ?? 'Unknown',
+      vehicleName: _selectedService!.name ?? 'Unknown',
+      model: _selectedSubCategory?.name ?? 'Unknown',
+      price: double.tryParse(_selectedPlan!.amount ?? '0') ?? 0.0,
+      planId: _selectedPlan!.id,
+      serviceId: _selectedService!.id,
+      planName: _selectedPlan!.name ?? '',
+    );
+
+    Navigator.pop(context, result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SnapHelperWidget<DashboardResponse>(
+        future: _dashboardFuture,
+        loadingWidget: const Loader(),
+        errorBuilder: (error) => NoDataWidget(
+          title: error,
+          imageWidget: ErrorStateWidget(),
+          retryText: language.reload,
+          onRetry: () {
+            setState(() {
+              _dashboardFuture = userDashboard(
+                isCurrentLocation: appStore.isCurrentLocation,
+                lat: getDoubleAsync(LATITUDE),
+                long: getDoubleAsync(LONGITUDE),
+              );
+            });
+          },
+        ),
+        onSuccess: (snap) {
+          _categories = snap.category.validate();
+          return SafeArea(
+            child: Column(
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    decoration: BoxDecoration(
+                      color: appStore.isDarkMode
+                          ? Colors.white38
+                          : Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                // Step indicator
+                _buildStepIndicator(),
+                const SizedBox(height: 4),
+                // Title
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    _stepTitle(),
+                    style: boldTextStyle(
+                      size: 18,
+                      color:
+                          appStore.isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+                // PageView
+                Expanded(
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildStep1VehicleType(),
+                      _buildStep2Brand(),
+                      _buildStep3Vehicle(),
+                      _buildStep4Plan(),
+                    ],
+                  ),
+                ),
+                // Bottom buttons
+                _buildBottomButtons(),
+              ],
+            ),
+          );
         },
       ),
-      onSuccess: (snap) {
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 80), // keep space for button
+    );
+  }
+
+  String _stepTitle() {
+    switch (_currentStep) {
+      case 0:
+        return 'Step 1 of 4: Vehicle Type';
+      case 1:
+        return 'Step 2 of 4: Select Brand';
+      case 2:
+        return 'Step 3 of 4: Select Vehicle';
+      case 3:
+        return 'Step 4 of 4: Choose Plan';
+      default:
+        return '';
+    }
+  }
+
+  Widget _buildStepIndicator() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Row(
+        children: List.generate(4, (index) {
+          final isCompleted = index < _currentStep;
+          final isCurrent = index == _currentStep;
+          return Expanded(
+            child: Container(
+              height: 4,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: isCompleted || isCurrent
+                    ? context.primaryColor
+                    : (appStore.isDarkMode
+                        ? Colors.white24
+                        : Colors.grey[300]),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // ── Step 1: Vehicle Type ──────────────────────────────────────────
+
+  Widget _buildStep1VehicleType() {
+    if (_categories.isEmpty) {
+      return const Center(child: Text('No vehicle types available'));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: GridView.builder(
+        shrinkWrap: true,
+        itemCount: _categories.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.4,
+        ),
+        itemBuilder: (context, index) {
+          final cat = _categories[index];
+          final isSelected = _selectedCategory?.id == cat.id;
+
+          return GestureDetector(
+            onTap: () => _onCategorySelected(cat),
+            child: Container(
+              decoration: BoxDecoration(
+                color: appStore.isDarkMode ? darkSurface : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? context.primaryColor
+                      : appStore.isDarkMode
+                          ? darkBorderGlow.withOpacity(0.5)
+                          : const Color(0xFFE0E0E0),
+                  width: isSelected ? 2 : 1,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: context.primaryColor.withOpacity(0.15),
+                          blurRadius: 10,
+                        )
+                      ]
+                    : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _categoryImage(cat, 48),
+                  const SizedBox(height: 8),
+                  Text(
+                    cat.name ?? '',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: appStore.isDarkMode
+                          ? Colors.white
+                          : Colors.black,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _categoryImage(CategoryData cat, double size) {
+    final url = cat.categoryImage ?? '';
+    if (url.endsWith('.svg')) {
+      return SvgPicture.network(
+        url,
+        width: size,
+        height: size,
+        color: appStore.isDarkMode ? Colors.white : null,
+      );
+    }
+    return CachedImageWidget(
+      url: url,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      circle: true,
+    );
+  }
+
+  // ── Step 2: Select Brand (subcategory) ────────────────────────────
+
+  Widget _buildStep2Brand() {
+    if (_subcategoryFuture == null) {
+      return const Center(child: Text('Select a vehicle type first'));
+    }
+
+    return FutureBuilder<List<CategoryData>>(
+      future: _subcategoryFuture,
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: Loader());
+        }
+        if (snap.hasError) {
+          return Center(child: Text('Error: ${snap.error}'));
+        }
+        final list = snap.data ?? [];
+        if (list.isEmpty) {
+          return const Center(child: Text('No brands available'));
+        }
+
+        final filteredList = _brandSearchQuery.isEmpty
+            ? list
+            : list.where((s) => (s.name ?? '').toLowerCase().contains(_brandSearchQuery.toLowerCase())).toList();
+
+        return Column(
+          children: [
+            // Search field
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: appStore.isDarkMode ? darkSurface : const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: appStore.isDarkMode ? darkBorderGlow.withOpacity(0.3) : const Color(0xFFE0E0E0),
+                  ),
+                ),
+                child: TextField(
+                  onChanged: (value) {
+                    setState(() => _brandSearchQuery = value);
+                  },
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: appStore.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Search brand...',
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: appStore.isDarkMode ? Colors.white38 : Colors.grey.shade400,
+                    ),
+                    prefixIcon: Icon(Icons.search_rounded, size: 20, color: appStore.isDarkMode ? Colors.white38 : Colors.grey.shade400),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+              ),
+            ),
+            if (filteredList.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'No brands match "$_brandSearchQuery"',
+                    style: TextStyle(color: appStore.isDarkMode ? Colors.white54 : Colors.grey),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: filteredList.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    color: appStore.isDarkMode
+                        ? darkBorderGlow.withOpacity(0.3)
+                        : const Color(0xFFE0E0E0),
+                  ),
+                  itemBuilder: (context, index) {
+                    final sub = filteredList[index];
+                    final isSelected = _selectedSubCategory?.id == sub.id;
+
+                    return ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      leading: Icon(
+                        isSelected
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        color: isSelected
+                            ? context.primaryColor
+                            : (appStore.isDarkMode ? Colors.white54 : Colors.black38),
+                      ),
+                      title: Text(
+                        sub.name ?? '',
+                        style: TextStyle(
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: appStore.isDarkMode ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(Icons.check, color: context.primaryColor, size: 20)
+                          : null,
+                      onTap: () {
+                        setState(() {
+                          _selectedSubCategory = sub;
+                          // Reset downstream
+                          _services = [];
+                          _selectedService = null;
+                          _selectedPlan = null;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ── Step 3: Select Vehicle (service) ──────────────────────────────
+
+  Widget _buildStep3Vehicle() {
+    if (_serviceFuture == null) {
+      return const Center(child: Text('Select a brand first'));
+    }
+
+    return FutureBuilder<List<ServiceData>>(
+      future: _serviceFuture,
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: Loader());
+        }
+        if (snap.hasError) {
+          return Center(child: Text('Error: ${snap.error}'));
+        }
+        final list = snap.data ?? [];
+        if (list.isEmpty) {
+          return const Center(child: Text('No vehicles found'));
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: list.length,
+          separatorBuilder: (_, __) => Divider(
+            height: 1,
+            color: appStore.isDarkMode
+                ? darkBorderGlow.withOpacity(0.3)
+                : const Color(0xFFE0E0E0),
+          ),
+          itemBuilder: (context, index) {
+            final service = list[index];
+            final isSelected = _selectedService?.id == service.id;
+
+            return ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              leading: Icon(
+                isSelected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+                color: isSelected
+                    ? context.primaryColor
+                    : (appStore.isDarkMode ? Colors.white54 : Colors.black38),
+              ),
+              title: Text(
+                service.name ?? '',
+                style: TextStyle(
+                  fontWeight:
+                      isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: appStore.isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+              trailing: isSelected
+                  ? Icon(Icons.check, color: context.primaryColor, size: 20)
+                  : null,
+              onTap: () {
+                setState(() {
+                  _selectedService = service;
+                  _selectedPlan = null;
+                });
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ── Step 4: Choose Plan ───────────────────────────────────────────
+
+  Widget _buildStep4Plan() {
+    final plans = _selectedService?.plans ?? [];
+    if (plans.isEmpty) {
+      return const Center(child: Text('No plans available for this vehicle'));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: plans.length,
+      itemBuilder: (context, index) {
+        final plan = plans[index];
+        final isSelected = _selectedPlan?.id == plan.id;
+        final amount = plan.amount ?? '0';
+        final title = plan.name ?? 'Plan';
+        final items = plan.items ?? [];
+        final washType = plan.washType ?? '';
+
+        String? badge;
+        if (index == 1 && plans.length > 1) badge = 'MOST POPULAR';
+        if (index == plans.length - 1 && plans.length > 2) badge = 'BEST VALUE';
+
+        return GestureDetector(
+          onTap: () {
+            setState(() => _selectedPlan = plan);
+          },
+          child: Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: appStore.isDarkMode ? darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected
+                    ? context.primaryColor
+                    : appStore.isDarkMode
+                        ? darkBorderGlow.withOpacity(0.5)
+                        : const Color(0xFFE0E0E0),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: context.primaryColor.withOpacity(0.15),
+                        blurRadius: 12,
+                      )
+                    ]
+                  : appStore.isDarkMode
+                      ? [
+                          BoxShadow(
+                            color: primaryColor.withOpacity(0.06),
+                            blurRadius: 12,
+                          )
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                          )
+                        ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                8.height,
-                  Center(
-                    child: Container(
-                      width: 80, // width of the bar
-                      height: 6, // thickness of the bar
-                      margin:
-                          EdgeInsets.only(bottom: 16), // spacing below the bar
-                      decoration: BoxDecoration(
-                        color: context.primaryColor, // color of the bar
-                        borderRadius: BorderRadius.circular(10), // rounded edges
-                        border: Border.all(
-                            color:
-                                appStore.isDarkMode ? Colors.white : Colors.black,
-                            width: 1), // border
+                if (badge != null) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: badge == 'MOST POPULAR'
+                          ? Colors.orange.withOpacity(0.15)
+                          : Colors.green.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      badge,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: badge == 'MOST POPULAR'
+                            ? Colors.orange[700]
+                            : Colors.green[700],
                       ),
                     ),
                   ),
-                // Heading
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    "Which Type of Vehicle Do you Have?",
-                    style: boldTextStyle(size: 18, color: appStore.isDarkMode ? Colors.white : Colors.black),
+                  const SizedBox(height: 8),
+                ],
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: appStore.isDarkMode
+                              ? Colors.white
+                              : Colors.black,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '\u20B9$amount/month',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: context.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                if (washType.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.autorenew,
+                          size: 16,
+                          color: appStore.isDarkMode
+                              ? Colors.white70
+                              : Colors.black54),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$washType washes/month',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: appStore.isDarkMode
+                              ? Colors.white70
+                              : Colors.black54,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                16.height,
-
-                // 1️⃣ Categories Row
-                CategoryExtraVehicle(
-                  categoryList: snap.category.validate(),
-                  onCategorySelected: (categories) {
-                    setState(() {
-                      selectedCategories = categories;
-                    });
-                  },
-                ),
-                24.height,
-
-                // 2️⃣ Subcategories per selected category
-                for (var category in selectedCategories) ...[
-                  SnapHelperWidget<List<CategoryData>>(
-                    future: getSubCategoryListAPI(catId: category.id.validate()),
-                    loadingWidget: Loader(),
-                    onSuccess: (subCats) {
-                      if (subCats.isEmpty) return SizedBox();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              "${category.name ?? ''} Models",
-                              style: boldTextStyle(size: 18, color: appStore.isDarkMode ? Colors.white : Colors.black),
+                ],
+                const SizedBox(height: 10),
+                ...items.map((item) {
+                  final isActive = item.status == 1;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          isActive ? Icons.check_circle : Icons.cancel,
+                          size: 16,
+                          color: isActive
+                              ? Colors.green
+                              : Colors.red.withOpacity(0.6),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item.name ?? '',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: appStore.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black87,
+                              decoration: isActive
+                                  ? null
+                                  : TextDecoration.lineThrough,
                             ),
                           ),
-                          12.height,
-                          SubCategorySelector(
-                            subCategoryList: subCats,
-                            onSubCategorySelected: (sub) {
-                              setState(() {
-                                selectedSubCategory[category.id!] = sub;
-                              });
-                            },
-                          ),
-                          16.height,
-                        ],
-                      );
-                    },
-                  ),
-                ],
-
-                // 3️⃣ Services for all selected subcategories
-                for (var category in selectedCategories) ...[
-                  for (var sub in (selectedSubCategory[category.id] ?? [])) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        "${sub.name ?? ''} Brands",
-                        style: boldTextStyle(size: 16, color: appStore.isDarkMode ? Colors.white : Colors.black),
-                      ),
-                    ),
-                    12.height,
-                    FutureBuilder<List<ServiceData>>(
-                      future: searchServiceAPI(
-                        categoryId: category.id.toString(),
-                        subCategory: sub.id.toString(),
-                        list: [],
-                      ),
-                      builder: (context, snap) {
-                        if (snap.connectionState == ConnectionState.waiting) return Loader();
-                        if (snap.hasError) return Text("Error: ${snap.error}");
-                        if (snap.data!.isEmpty) return Text("No services found");
-
-                        return ServiceSelector(
-                          services: snap.data!,
-                          onServiceSelected: (serviceList) {
-                            setState(() {
-                              selectedService[sub.id!] = serviceList;
-                            });
-                          },
-                        );
-                      },
-                    ),
-                    20.height,
-                  ],
-                ],
-
-                // 4️⃣ Plans for all selected services
-                for (var category in selectedCategories) ...[
-                  for (var sub in (selectedSubCategory[category.id] ?? [])) ...[
-                    if ((selectedService[sub.id] ?? []).isNotEmpty) ...[
-                      for (var service in (selectedService[sub.id] ?? [])) ...[
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Text(
-                            "${service.name ?? ''} Plans",
-                            style: boldTextStyle(size: 16, color: appStore.isDarkMode ? Colors.white : Colors.black),
-                          ),
                         ),
-                       _plansForModel(service.plans ?? [])
                       ],
-                      20.height,
-                    ]
-                  ],
-                ],
-
-                // 5️⃣ Confirm Button
+                    ),
+                  );
+                }),
+                const SizedBox(height: 12),
                 Center(
-  child: ElevatedButton(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Theme.of(context).primaryColor, // ✅ use app primary color
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-    ),
-    onPressed: () {
-  if (selectedPlanId != null) {
-    // find the selected plan from the services
-    ServicePlanData? chosenPlan;
-    ServiceData? chosenService;
-
-    for (var serviceList in selectedService.values) {
-      for (var s in serviceList) {
-        final match = s.plans?.firstWhere(
-          (p) => p.id == selectedPlanId,
-          orElse: () => ServicePlanData(),
-        );
-        if (match != null && match.id != null && match.id == selectedPlanId) {
-          chosenPlan = match;
-          chosenService = s;
-          break;
-        }
-      }
-    }
-
-    if (chosenPlan != null && chosenService != null) {
-      final selectedPlan = SelectedVehiclePlan(
-        vehicleType: selectedCategories.isNotEmpty
-            ? selectedCategories.first.name ?? "Unknown"
-            : "Unknown",
-        vehicleName: chosenService.name ?? "Unknown",
-        model: selectedSubCategory.values.isNotEmpty
-            ? selectedSubCategory.values.first.first.name ?? "Unknown"
-            : "Unknown",
-        price: double.tryParse(chosenPlan!.amount ?? '0') ?? 0.0,
-        planId: chosenPlan.id!,
-      );
-
-      Navigator.pop(context, selectedPlan); // ✅ return to parent
-    }
-  }
-},
-    child: const Text(
-      "Confirm",
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  ),
-),
-
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSelected
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        size: 20,
+                        color: isSelected
+                            ? context.primaryColor
+                            : (appStore.isDarkMode
+                                ? Colors.white54
+                                : Colors.black38),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isSelected ? 'Selected' : 'Select',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? context.primaryColor
+                              : (appStore.isDarkMode
+                                  ? Colors.white54
+                                  : Colors.black38),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
         );
       },
-    ),
-  );
-}
+    );
+  }
 
-Widget _plansForModel(List<ServicePlanData> plans) {
-  if (plans.isEmpty) return SizedBox();
+  // ── Bottom Buttons ────────────────────────────────────────────────
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          children: plans.map((plan) {
-            return Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: _planCard(
-  plan.id ?? 0,   // 👈 pass ID
-  plan.name ?? "Plan",
-  "₹${plan.amount ?? '0'}/WASH",
-  plan.items ?? [],
-  plan.amount ?? "0",
-),
+  Widget _buildBottomButtons() {
+    final bool canGoNext;
+    switch (_currentStep) {
+      case 0:
+        canGoNext = _selectedCategory != null;
+        break;
+      case 1:
+        canGoNext = _selectedSubCategory != null;
+        break;
+      case 2:
+        canGoNext = _selectedService != null;
+        break;
+      case 3:
+        canGoNext = _selectedPlan != null;
+        break;
+      default:
+        canGoNext = false;
+    }
 
-            );
-          }).toList(),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(
+          top: BorderSide(
+            color: appStore.isDarkMode
+                ? darkBorderGlow.withOpacity(0.3)
+                : const Color(0xFFE0E0E0),
+          ),
         ),
       ),
-    ],
-  );
-}
-
-Widget _planCard(
-  int planId,
-  String title,
-  String price,
-  List<ServicePlanItemData> items,
-  String amount,
-) {
-  final isSelected = selectedPlanId == planId;
-
-  return Container(
-    width: 220,
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: appStore.isDarkMode ? Color(0xFF171A1F) : Color(0xFFE0E0E0),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Title & Price
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: appStore.isDarkMode ? Colors.white : Colors.black,
-              ),
-            ),
-            Text(
-              price,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: appStore.isDarkMode ? Colors.white : Colors.black,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        // Features
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: items.map((item) {
-            final isActive = item.status == 1;
-            return Row(
-              children: [
-                Icon(
-                  isActive ? Icons.check_circle : Icons.cancel,
-                  size: 14,
-                  color: isActive ? Colors.green : Colors.red,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  item.name ?? '',
-                  style: TextStyle(
-                    color: appStore.isDarkMode ? Colors.white : Colors.black,
-                    decoration: isActive ? null : TextDecoration.lineThrough,
+      child: Row(
+        children: [
+          if (_currentStep > 0)
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(
+                    color: appStore.isDarkMode
+                        ? Colors.white54
+                        : Colors.black38,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              ],
-            );
-          }).toList(),
-        ),
-
-        const SizedBox(height: 10),
-
-        // Select button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isSelected ? Colors.blue : Colors.white, // ✅ toggle
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                onPressed: _onBack,
+                child: Text(
+                  'Back',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: appStore.isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
               ),
             ),
-            onPressed: () {
-              setState(() {
-                selectedPlanId = planId; // ✅ mark selected
-              });
-            },
-            child: Text(
-              "$title ₹$amount",
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : (appStore.isDarkMode ? Colors.black : Colors.black),
-                fontWeight: FontWeight.bold,
+          if (_currentStep > 0) const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    canGoNext ? context.primaryColor : Colors.grey,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: canGoNext
+                  ? (_currentStep == 3 ? _onConfirm : _onNext)
+                  : null,
+              child: Text(
+                _currentStep == 3 ? 'Confirm' : 'Next',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
-}
-
-// import 'package:booking_system_flutter/main.dart';
-// import 'package:booking_system_flutter/screens/service/service_book.dart';
-// import 'package:booking_system_flutter/utils/images.dart';
-// import 'package:flutter/material.dart';
-// import 'package:nb_utils/nb_utils.dart';
-
-void showVehicleSelector(BuildContext context) {
-  Map<int, int> selectedBrandIndex = {};
-  Map<int, int?> selectedModelIndex = {};
-  Set<int> selectedVehicleTypes = {};
-
-  final bikeBrands = [
-    {
-      'img': bike_image,
-      'name': 'Bike',
-      'models': [
-        {'img': bike_image, 'name': 'Splendor'},
-        {'img': bike_image, 'name': 'Splendor Plus'},
-      ]
-    },
-    {
-      'img': scooty_image,
-      'name': 'Scooty',
-      'models': [
-        {'img': scooty_image, 'name': 'Scooty Pep'},
-        {'img': scooty_image, 'name': 'Scooty Streak'},
-      ]
-    },
-    {
-      'img': bike_image,
-      'name': 'Yamaha',
-      'models': [
-        {'img': bike_image, 'name': 'FZ'},
-        {'img': bike_image, 'name': 'R15'},
-      ]
-    },
-  ];
-
-  final carBrands = [
-    {
-      'img': car_image,
-      'name': 'Car',
-      'models': [
-        {'img': car_image, 'name': 'Swift'},
-        {'img': car_image, 'name': 'Baleno'},
-      ]
-    },
-    {
-      'img': car_xuv300,
-      'name': 'XUV300',
-      'models': [
-        {'img': car_xuv300, 'name': 'Base'},
-        {'img': car_xuv300, 'name': 'Sport'},
-      ]
-    },
-    {
-      'img': car_xuv400,
-      'name': 'XUV400',
-      'models': [
-        {'img': car_xuv400, 'name': 'EV'},
-      ]
-    },
-  ];
-  final busBrands = [
-    {
-      'img': bus_image,
-      'name': 'Bus',
-      'models': [
-        {'img': bus_image, 'name': 'Tata'},
-        {'img': bus_image, 'name': 'Ashok Leyland'},
-      ]
-    },
-    {
-      'img': bus_image,
-      'name': 'Volvo',
-      'models': [
-        {'img': bus_image, 'name': '9400'},
-        {'img': bus_image, 'name': '9600'},
-      ]
-    },
-    {
-      'img': bus_image,
-      'name': 'Mini Bus',
-      'models': [
-        {'img': bus_image, 'name': 'Mini Bus'},
-      ]
-    },
-  ];
-
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor:
-        appStore.isDarkMode ? Color(0xFF171A1F) : Color(0xFFE0E0E0),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (BuildContext modalContext) {
-      return StatefulBuilder(
-        builder: (modalContext, setModalState) {
-          return SizedBox(
-              height: MediaQuery.of(context).size.height * 0.8, // ⬅️ 80% height
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 80, // width of the bar
-                        height: 6, // thickness of the bar
-                        margin: EdgeInsets.only(
-                            bottom: 16), // spacing below the bar
-                        decoration: BoxDecoration(
-                          color: context.primaryColor, // color of the bar
-                          borderRadius:
-                              BorderRadius.circular(10), // rounded edges
-                          border: Border.all(
-                              color: appStore.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black,
-                              width: 1), // border
-                        ),
-                      ),
-                      Text(
-                        "Which Type of Vehicle Do you Have?",
-                        style: TextStyle(
-                          color:
-                              appStore.isDarkMode ? Colors.white : Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // Bike
-                          GestureDetector(
-                            onTap: () {
-                              setModalState(() {
-                                if (selectedVehicleTypes.contains(0)) {
-                                  selectedVehicleTypes.remove(0);
-                                } else {
-                                  selectedVehicleTypes.add(0);
-                                }
-                              });
-                            },
-                            child: Row(
-                              children: [
-                                Image.asset(bike_image, width: 32, height: 32),
-                                SizedBox(width: 6),
-                                Text("Bike",
-                                    style: TextStyle(
-                                        color: appStore.isDarkMode
-                                            ? Colors.white
-                                            : Colors.black,
-                                        fontWeight: FontWeight.bold)),
-                                if (selectedVehicleTypes.contains(0))
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 4),
-                                    child: Icon(Icons.check,
-                                        color: Theme.of(context).primaryColor,
-                                        size: 18),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          // Car
-                          GestureDetector(
-                            onTap: () {
-                              setModalState(() {
-                                if (selectedVehicleTypes.contains(1)) {
-                                  selectedVehicleTypes.remove(1);
-                                } else {
-                                  selectedVehicleTypes.add(1);
-                                }
-                              });
-                            },
-                            child: Row(
-                              children: [
-                                Image.asset(car_image, width: 32, height: 32),
-                                SizedBox(width: 6),
-                                Text("Car",
-                                    style: TextStyle(
-                                        color: appStore.isDarkMode
-                                            ? Colors.white
-                                            : Colors.black,
-                                        fontWeight: FontWeight.bold)),
-                                if (selectedVehicleTypes.contains(1))
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 4),
-                                    child: Icon(Icons.check,
-                                        color: Theme.of(context).primaryColor,
-                                        size: 18),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          // Bus
-                          GestureDetector(
-                            onTap: () {
-                              setModalState(() {
-                                if (selectedVehicleTypes.contains(2)) {
-                                  selectedVehicleTypes.remove(2);
-                                } else {
-                                  selectedVehicleTypes.add(2);
-                                }
-                              });
-                            },
-                            child: Row(
-                              children: [
-                                Image.asset(bus_image, width: 32, height: 32),
-                                SizedBox(width: 6),
-                                Text("Bus",
-                                    style: TextStyle(
-                                        color: appStore.isDarkMode
-                                            ? Colors.white
-                                            : Colors.black,
-                                        fontWeight: FontWeight.bold)),
-                                if (selectedVehicleTypes.contains(2))
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 4),
-                                    child: Icon(Icons.check,
-                                        color: Theme.of(context).primaryColor,
-                                        size: 18),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Add these maps at the top of your State class to track selected brands:
-
-                      if (selectedVehicleTypes.isNotEmpty) ...[
-                        SizedBox(height: 18),
-                        Text("Choose your brand",
-                            style: TextStyle(
-                                color: appStore.isDarkMode
-                                    ? Colors.white
-                                    : Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16)),
-                        SizedBox(height: 12),
-
-                        // Render all brand rows first
-                        for (var type in selectedVehicleTypes) ...[
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  type == 0
-                                      ? "Bike"
-                                      : type == 1
-                                          ? "Car"
-                                          : "Bus",
-                                  style: TextStyle(
-                                      color: appStore.isDarkMode
-                                          ? Colors.white
-                                          : Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15),
-                                ),
-                                SizedBox(height: 8),
-
-                                // Brand Selection
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      for (int i = 0;
-                                          i <
-                                              (type == 0
-                                                  ? bikeBrands.length
-                                                  : type == 1
-                                                      ? carBrands.length
-                                                      : busBrands.length);
-                                          i++) ...[
-                                        GestureDetector(
-                                          onTap: () {
-                                            setModalState(() {
-                                              selectedBrandIndex[type] = i;
-                                              selectedModelIndex[type] =
-                                                  null; // Reset model when brand changes
-                                            });
-                                          },
-                                          child: Container(
-                                            margin: EdgeInsets.only(right: 12),
-                                            padding: EdgeInsets.all(6),
-                                            decoration: BoxDecoration(
-                                              border: Border.all(
-                                                color:
-                                                    selectedBrandIndex[type] ==
-                                                            i
-                                                        ? Theme.of(context)
-                                                            .primaryColor
-                                                        : Colors.transparent,
-                                                width: 2,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Image.asset(
-                                                  (type == 0
-                                                      ? bikeBrands[i]['img']
-                                                      : type == 1
-                                                          ? carBrands[i]['img']
-                                                          : busBrands[i][
-                                                              'img']) as String,
-                                                  width: 48,
-                                                  height: 48,
-                                                ),
-                                                SizedBox(width: 6),
-                                                Text(
-                                                  (type == 0
-                                                      ? bikeBrands[i]['name']
-                                                      : type == 1
-                                                          ? carBrands[i]['name']
-                                                          : busBrands[i][
-                                                              'name']) as String,
-                                                  style: TextStyle(
-                                                      color: appStore.isDarkMode
-                                                          ? Colors.white
-                                                          : Colors.black,
-                                                      fontSize: 13),
-                                                ),
-                                                if (selectedBrandIndex[type] ==
-                                                    i)
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            left: 4),
-                                                    child: Icon(Icons.check,
-                                                        color: Theme.of(context)
-                                                            .primaryColor,
-                                                        size: 16),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        // Pick your model section AFTER all brand sections
-                        if (selectedBrandIndex.values
-                            .any((v) => v != null)) ...[
-                          SizedBox(height: 16),
-                          Text(
-                            "Pick your model below",
-                            style: TextStyle(
-                                color: appStore.isDarkMode
-                                    ? Colors.white
-                                    : Colors.black,
-                                fontWeight: FontWeight.w500),
-                            textAlign: TextAlign
-                                .start, // ⬅️ ensures text is left aligned
-                          ),
-                          SizedBox(height: 8),
-
-                          // Show models for ALL selected types + brands
-                          for (var entry in selectedBrandIndex.entries
-                              .where((e) => e.value != null)) ...[
-                            SizedBox(height: 12),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                entry.key == 0
-                                    ? "Bike Models"
-                                    : entry.key == 1
-                                        ? "Car Models"
-                                        : "Bus Models",
-                                style: TextStyle(
-                                    color: appStore.isDarkMode
-                                        ? Colors.white
-                                        : Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15),
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Builder(builder: (_) {
-                              final type = entry.key;
-                              final brandIndex = entry.value!;
-                              final models = (type == 0
-                                      ? bikeBrands[brandIndex]['models']
-                                      : type == 1
-                                          ? carBrands[brandIndex]['models']
-                                          : busBrands[brandIndex]['models'])
-                                  as List;
-
-                              return SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: [
-                                    for (int j = 0; j < models.length; j++) ...[
-                                      GestureDetector(
-                                        onTap: () {
-                                          setModalState(() {
-                                            selectedModelIndex[type] = j;
-                                          });
-                                        },
-                                        child: Container(
-                                          margin: EdgeInsets.only(right: 12),
-                                          padding: EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            border: Border.all(
-                                              color:
-                                                  selectedModelIndex[type] == j
-                                                      ? Theme.of(context)
-                                                          .primaryColor
-                                                      : Colors.transparent,
-                                              width: 2,
-                                            ),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Image.asset(
-                                                  models[j]['img'] as String,
-                                                  width: 48,
-                                                  height: 48),
-                                              SizedBox(width: 6),
-                                              Text(models[j]['name'] as String,
-                                                  style: TextStyle(
-                                                      color: appStore.isDarkMode
-                                                          ? Colors.white
-                                                          : Colors.black,
-                                                      fontSize: 13)),
-                                              if (selectedModelIndex[type] == j)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          left: 4),
-                                                  child: Icon(Icons.check,
-                                                      color: Theme.of(context)
-                                                          .primaryColor,
-                                                      size: 16),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              );
-                            }),
-                          ],
-
-                          // ⬇️ AFTER all model sections, render plans
-                          if (selectedModelIndex.values
-                              .any((v) => v != null)) ...[
-                            SizedBox(height: 20),
-                            Text("Available Plans",
-                                style: TextStyle(
-                                    color: appStore.isDarkMode
-                                        ? Colors.white
-                                        : Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16)),
-                            SizedBox(height: 12),
-                            for (var entry in selectedModelIndex.entries
-                                .where((e) => e.value != null)) ...[
-                              // Builder(builder: (_) {
-                              //   final type = entry.key;
-                              //   final brandIndex = selectedBrandIndex[type]!;
-                              //   final modelIndex = entry.value!;
-                              //   final models = (type == 0
-                              //           ? bikeBrands[brandIndex]['models']
-                              //           : type == 1
-                              //               ? carBrands[brandIndex]['models']
-                              //               : busBrands[brandIndex]['models'])
-                              //       as List;
-
-                              //   return Column(
-                              //     crossAxisAlignment: CrossAxisAlignment.start,
-                              //     children: [
-                              //       _plansForModel(
-                              //         models[modelIndex]['name'] as String,
-                              //       ),
-                              //       SizedBox(height: 16),
-                              //     ],
-                              //   );
-                              // }),
-                            ],
-                          ]
-                        ]
-                      ],
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12))),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ServiceBookScreen(),
-                              ),
-                            );
-                          },
-                          child: Text("Confirm",
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: appStore.isDarkMode
-                                      ? Colors.white
-                                      : Colors.black)),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ));
-        },
-      );
-    },
-  );
-}
-
-
-
-

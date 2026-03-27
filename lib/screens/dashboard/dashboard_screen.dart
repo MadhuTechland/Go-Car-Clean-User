@@ -1,6 +1,6 @@
 import 'package:booking_system_flutter/component/image_border_component.dart';
 import 'package:booking_system_flutter/main.dart';
-import 'package:booking_system_flutter/screens/auth/sign_in_screen.dart';
+import 'package:booking_system_flutter/screens/auth/phone_entry_screen.dart';
 import 'package:booking_system_flutter/screens/category/category_screen.dart';
 import 'package:booking_system_flutter/screens/chat/chat_list_screen.dart';
 import 'package:booking_system_flutter/screens/dashboard/fragment/booking_fragment.dart';
@@ -21,11 +21,6 @@ import 'package:nb_utils/nb_utils.dart';
 import '../../component/voice_search_component.dart';
 import '../../utils/app_configuration.dart';
 import '../../utils/firebase_messaging_utils.dart';
-import '../newDashboard/dashboard_1/component/bottom_sheet.dart';
-import '../newDashboard/dashboard_1/dashboard_fragment_1.dart';
-import '../newDashboard/dashboard_2/dashboard_fragment_2.dart';
-import '../newDashboard/dashboard_3/dashboard_fragment_3.dart';
-import '../newDashboard/dashboard_4/dashboard_fragment_4.dart';
 
 class DashboardScreen extends StatefulWidget {
   final bool? redirectToBooking;
@@ -39,7 +34,6 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int currentIndex = 0;
   bool isInterNetConnect = true;
-  bool _isBottomSheetShown = false;
 
   @override
   void initState() {
@@ -52,30 +46,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     afterBuildCreated(() async {
       /// Changes System theme when changed
       if (getIntAsync(THEME_MODE_INDEX) == THEME_MODE_SYSTEM) {
-        // appStore.setDarkMode(context.platformBrightness() == Brightness.dark);
-        appStore.setDarkMode(true);
-        defaultToastBackgroundColor = Colors.white;
-        defaultToastTextColor = Colors.black;
+        appStore.setDarkMode(false);
+        defaultToastBackgroundColor = Colors.black;
+        defaultToastTextColor = Colors.white;
       }
 
       View.of(context).platformDispatcher.onPlatformBrightnessChanged = () async {
         if (getIntAsync(THEME_MODE_INDEX) == THEME_MODE_SYSTEM) {
-          // appStore.setDarkMode(MediaQuery.of(context).platformBrightness == Brightness.light);
-          appStore.setDarkMode(true);
-          defaultToastBackgroundColor = Colors.white;
-          defaultToastTextColor = Colors.black;
+          appStore.setDarkMode(false);
+          defaultToastBackgroundColor = Colors.black;
+          defaultToastTextColor = Colors.white;
         }
       };
     });
-
-     if (!(widget.redirectToBooking.validate(value: false))) {
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted && !_isBottomSheetShown) {
-        _isBottomSheetShown = true;
-        WashTypeBottomSheet.show(context);
-      }
-    });
-  }
 
     /// Handle Firebase Notification click and redirect to that Service & BookDetail screen
     LiveStream().on(LIVESTREAM_FIREBASE, (value) {
@@ -159,35 +142,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
           opacity: 1,
           duration: Duration(milliseconds: 500),
           child: [
-            Observer(
-              builder: (context) {
-                if (appConfigurationStore.userDashboardType == DASHBOARD_1) {
-                  return DashboardFragment1();
-                } else if (appConfigurationStore.userDashboardType == DASHBOARD_2) {
-                  return DashboardFragment2();
-                } else if (appConfigurationStore.userDashboardType == DASHBOARD_3) {
-                  return DashboardFragment3();
-                } else if (appConfigurationStore.userDashboardType == DASHBOARD_4) {
-                  return DashboardFragment4();
-                } else {
-                  return DashboardFragment();
-                }
-              }
-            ),
+            DashboardFragment(),
             CategoryScreen(),
-            Observer(builder: (context) => appStore.isLoggedIn ? BookingFragment() : SignInScreen(isFromDashboard: true)),
-            // Observer(builder: (context) => appStore.isLoggedIn ? ChatListScreen() : SignInScreen(isFromDashboard: true)),
+            Observer(builder: (context) => appStore.isLoggedIn ? BookingFragment() : PhoneEntryScreen(isFromDashboard: true)),
+            // Observer(builder: (context) => appStore.isLoggedIn ? ChatListScreen() : PhoneEntryScreen(isFromDashboard: true)),
             ProfileFragment(),
           ][currentIndex],
         ),
-        bottomNavigationBar: Blur(
-          blur: 30,
-          borderRadius: radius(0),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: appStore.isDarkMode ? darkBottomNavBg : Colors.white,
+            border: appStore.isDarkMode
+                ? Border(top: BorderSide(color: darkBorderGlow, width: 0.5))
+                : Border(top: BorderSide(color: borderColor, width: 0.5)),
+            boxShadow: appStore.isDarkMode
+                ? [
+                    BoxShadow(
+                      color: primaryColor.withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, -4),
+                    ),
+                  ]
+                : [],
+          ),
           child: NavigationBarTheme(
             data: NavigationBarThemeData(
-              backgroundColor: context.primaryColor.withValues(alpha:0.02),
-              indicatorColor: context.primaryColor.withValues(alpha:0.1),
-              labelTextStyle: WidgetStateProperty.all(primaryTextStyle(size: 12)),
+              backgroundColor: Colors.transparent,
+              indicatorColor: context.primaryColor.withValues(alpha: 0.1),
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return primaryTextStyle(
+                    size: 12,
+                    color: appStore.isDarkMode ? context.primaryColor : context.primaryColor,
+                  );
+                }
+                return primaryTextStyle(
+                  size: 12,
+                  color: appStore.isDarkMode ? Colors.white54 : appTextSecondaryColor,
+                );
+              }),
               surfaceTintColor: Colors.transparent,
               shadowColor: Colors.transparent,
             ),

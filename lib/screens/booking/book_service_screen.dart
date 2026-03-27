@@ -289,6 +289,64 @@ class _BookServiceScreenState extends State<BookServiceScreen> {
 
               packageWidget(),
 
+              // Extra Vehicles Section
+              if (widget.selectedExtraVehicles.isNotEmpty) ...[
+                16.height,
+                Text("Extra Vehicles (${widget.selectedExtraVehicles.length})", style: boldTextStyle(size: LABEL_TEXT_SIZE)),
+                8.height,
+                ...widget.selectedExtraVehicles.map((ev) => Container(
+                  margin: EdgeInsets.only(bottom: 8),
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: context.cardColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: appStore.isDarkMode
+                          ? Colors.white12
+                          : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: context.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.directions_car, color: context.primaryColor, size: 20),
+                      ),
+                      12.width,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(ev.vehicleName, style: boldTextStyle(size: 14)),
+                            4.height,
+                            Text(
+                              '${ev.vehicleType} · ${ev.model}',
+                              style: secondaryTextStyle(size: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '₹${ev.price.toStringAsFixed(0)}',
+                            style: boldTextStyle(size: 14, color: context.primaryColor),
+                          ),
+                          if (ev.planName.isNotEmpty)
+                            Text(ev.planName, style: secondaryTextStyle(size: 11)),
+                        ],
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+
               addressAndDescriptionWidget(context),
 
               Text("${language.hintDescription}", style: boldTextStyle(size: LABEL_TEXT_SIZE)),

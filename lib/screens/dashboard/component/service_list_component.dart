@@ -1,7 +1,7 @@
-import 'package:booking_system_flutter/component/view_all_label_component.dart';
 import 'package:booking_system_flutter/main.dart';
 import 'package:booking_system_flutter/model/service_data_model.dart';
 import 'package:booking_system_flutter/screens/service/component/service_component.dart';
+import 'package:booking_system_flutter/utils/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:nb_utils/nb_utils.dart';
 
@@ -19,22 +19,38 @@ class ServiceListComponent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         16.height,
-        ViewAllLabel(
-          label: language.service,
-          list: serviceList,
-          onTap: () {
-            ViewAllServiceScreen().launch(context);
-          },
-        ).paddingSymmetric(horizontal: 16),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Nearby Services', style: boldTextStyle(size: 16)),
+                  4.height,
+                  Text(
+                    'Services available near you',
+                    style: secondaryTextStyle(size: 12),
+                  ),
+                ],
+              ).expand(),
+              if (serviceList.length >= 4)
+                TextButton(
+                  onPressed: () => ViewAllServiceScreen().launch(context),
+                  child: Text(language.lblViewAll, style: boldTextStyle(size: 12, color: primaryColor)),
+                ),
+            ],
+          ),
+        ),
         8.height,
         serviceList.isNotEmpty
             ? HorizontalList(
                 itemCount: serviceList.length,
                 spacing: 16,
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemBuilder: (context, index) => ServiceComponent(
                   serviceData: serviceList[index],
-                  width: 280, // 🔹 set card width
+                  width: 260,
                   isBorderEnabled: true,
                   bookingType: "daily",
                 ),
@@ -50,42 +66,3 @@ class ServiceListComponent extends StatelessWidget {
     );
   }
 }
-
-// class ServiceListComponent extends StatelessWidget {
-//   final List<ServiceData> serviceList;
-
-//   ServiceListComponent({required this.serviceList});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: [
-//         16.height,
-//         ViewAllLabel(
-//           label: language.service,
-//           list: serviceList,
-//           onTap: () {
-//             ViewAllServiceScreen().launch(context);
-//           },
-//         ).paddingSymmetric(horizontal: 16),
-//         8.height,
-//         serviceList.isNotEmpty
-//             ? Wrap(
-//                 spacing: 16,
-//                 runSpacing: 16,
-//                 children: List.generate(serviceList.length, (index) {
-//                   return ServiceComponent(serviceData: serviceList[index], width: context.width() / 2 - 26);
-//                 }),
-//               ).paddingSymmetric(horizontal: 16, vertical: 8)
-//             : Container(
-//                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-//                 child: NoDataWidget(
-//                   title: language.lblNoServicesFound,
-//                   imageWidget: EmptyStateWidget(),
-//                 ),
-//               ).center(),
-//       ],
-//     );
-//   }
-// }

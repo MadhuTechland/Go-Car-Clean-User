@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 
 const APP_NAME = 'Go Car Clean';
 const APP_NAME_TAG_LINE = 'On-Demand Home Services App';
-var defaultPrimaryColor = Color(0xFF34A6FC);
+var defaultPrimaryColor = Color(0xFF1B3A5C);
 
 // Don't add slash at the end of the url
 
 const DOMAIN_URL = "https://royalblue-nightingale-664281.hostingersite.com";
 const BASE_URL = '$DOMAIN_URL/api/';
+
+const IMAGE_BASE_URL = DOMAIN_URL;
 
 const DEFAULT_LANGUAGE = 'en';
 

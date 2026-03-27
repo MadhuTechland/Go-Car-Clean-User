@@ -11,7 +11,7 @@ import 'package:booking_system_flutter/utils/constant.dart';
 import 'package:booking_system_flutter/utils/images.dart';
 import 'package:booking_system_flutter/utils/string_extensions.dart';
 import 'package:country_picker/country_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:booking_system_flutter/screens/dashboard/dashboard_screen.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,10 +23,8 @@ class SignUpScreen extends StatefulWidget {
   final String? phoneNumber;
   final String? countryCode;
   final bool isOTPLogin;
-  final String? uid;
-  final int? tokenForOTPCredentials;
 
-  SignUpScreen({Key? key, this.phoneNumber, this.isOTPLogin = false, this.countryCode, this.uid, this.tokenForOTPCredentials}) : super(key: key);
+  SignUpScreen({Key? key, this.phoneNumber, this.isOTPLogin = false, this.countryCode}) : super(key: key);
 
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
@@ -39,14 +37,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   TextEditingController fNameCont = TextEditingController();
   TextEditingController lNameCont = TextEditingController();
   TextEditingController emailCont = TextEditingController();
-  TextEditingController userNameCont = TextEditingController();
   TextEditingController mobileCont = TextEditingController();
   TextEditingController passwordCont = TextEditingController();
 
   FocusNode fNameFocus = FocusNode();
   FocusNode lNameFocus = FocusNode();
   FocusNode emailFocus = FocusNode();
-  FocusNode userNameFocus = FocusNode();
   FocusNode mobileFocus = FocusNode();
   FocusNode passwordFocus = FocusNode();
 
@@ -67,7 +63,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       mobileCont.text = widget.phoneNumber != null ? widget.phoneNumber.toString() : "";
       passwordCont.text = widget.phoneNumber != null ? widget.phoneNumber.toString() : "";
-      userNameCont.text = widget.phoneNumber != null ? widget.phoneNumber.toString() : "";
     }
   }
 
@@ -95,29 +90,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
         formKey.currentState!.save();
         appStore.setLoading(true);
 
+        String username = '${fNameCont.text.trim()}${lNameCont.text.trim()}'.toLowerCase().replaceAll(' ', '');
+
         UserData userResponse = UserData()
-          ..username = widget.phoneNumber.validate().trim()
+          ..username = username
           ..loginType = LOGIN_TYPE_OTP
           ..contactNumber = buildMobileNumber()
           ..email = emailCont.text.trim()
           ..firstName = fNameCont.text.trim()
           ..lastName = lNameCont.text.trim()
           ..userType = USER_TYPE_USER
-          ..uid = widget.uid.validate()
           ..password = widget.phoneNumber.validate().trim();
-
-        /// Link OTP login with Email Auth
-        if (widget.tokenForOTPCredentials != null) {
-          try {
-            AuthCredential credential = PhoneAuthProvider.credentialFromToken(widget.tokenForOTPCredentials!);
-            UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-
-            AuthCredential emailAuthCredential = EmailAuthProvider.credential(email: emailCont.text.trim(), password: DEFAULT_FIREBASE_PASSWORD);
-            userCredential.user!.linkWithCredential(emailAuthCredential);
-          } catch (e) {
-            print(e);
-          }
-        }
 
         await createUsers(tempRegisterData: userResponse);
       }
@@ -162,12 +145,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
         appStore.setLoading(true);
 
         /// Create a temporary request to send
+        String username = '${fNameCont.text.trim()}${lNameCont.text.trim()}'.toLowerCase().replaceAll(' ', '');
+
         UserData tempRegisterData = UserData()
           ..contactNumber = buildMobileNumber()
           ..firstName = fNameCont.text.trim()
           ..lastName = lNameCont.text.trim()
           ..userType = USER_TYPE_USER
-          ..username = userNameCont.text.trim()
+          ..username = username
           ..email = emailCont.text.trim()
           ..password = passwordCont.text.trim();
 
@@ -183,14 +168,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> createUsers({required UserData tempRegisterData}) async {
     await createUser(tempRegisterData.toJson()).then((registerResponse) async {
-      registerResponse.userData!.password = passwordCont.text.trim();
-
-      appStore.setLoading(false);
       toast(registerResponse.message.validate());
-      await appStore.setLoginType(tempRegisterData.loginType.validate());
 
-      /// Back to sign in screen
-      finish(context);
+      if (widget.isOTPLogin && registerResponse.userData != null) {
+        // Auto-login after OTP registration
+        await saveUserData(registerResponse.userData!);
+        await appStore.setLoginType(LOGIN_TYPE_OTP);
+        await setValue(USER_PASSWORD, widget.phoneNumber.validate().trim());
+
+        appStore.setLoading(false);
+        DashboardScreen().launch(context, isNewTask: true, pageRouteAnimation: PageRouteAnimation.Fade);
+      } else {
+        if (registerResponse.userData != null) {
+          registerResponse.userData!.password = passwordCont.text.trim();
+        }
+        appStore.setLoading(false);
+        await appStore.setLoginType(tempRegisterData.loginType.validate());
+        finish(context);
+      }
     }).catchError((e) {
       appStore.setLoading(false);
       toast(e.toString());
@@ -238,20 +233,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           textFieldType: TextFieldType.NAME,
           controller: lNameCont,
           focus: lNameFocus,
-          nextFocus: userNameFocus,
+          nextFocus: emailFocus,
           errorThisFieldRequired: language.requiredText,
           decoration: inputDecoration(context, labelText: language.hintLastNameTxt),
-          suffix: ic_profile2.iconImage(size: 10).paddingAll(14),
-        ),
-        16.height,
-        AppTextField(
-          textFieldType: TextFieldType.USERNAME,
-          controller: userNameCont,
-          focus: userNameFocus,
-          nextFocus: emailFocus,
-          readOnly: widget.isOTPLogin.validate() ? widget.isOTPLogin : false,
-          errorThisFieldRequired: language.requiredText,
-          decoration: inputDecoration(context, labelText: language.hintUserNameTxt),
           suffix: ic_profile2.iconImage(size: 10).paddingAll(14),
         ),
         16.height,

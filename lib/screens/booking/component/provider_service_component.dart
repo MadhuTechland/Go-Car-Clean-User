@@ -44,6 +44,26 @@ class _ProviderServiceComponentState extends State<ProviderServiceComponent> {
     //
   }
 
+  String _getServiceImageUrl() {
+    // Try service-specific attachments first
+    if (widget.isFavouriteService) {
+      if (widget.serviceData!.serviceAttachments.validate().isNotEmpty) {
+        return widget.serviceData!.serviceAttachments!.first.validate();
+      }
+    } else {
+      if (widget.serviceData!.attachments.validate().isNotEmpty) {
+        return widget.serviceData!.attachments!.first.validate();
+      }
+    }
+    // Fallback to category-based vehicle image
+    final catName = widget.serviceData!.categoryName.validate().toLowerCase();
+    if (catName.contains('car')) return car_image;
+    if (catName.contains('bike')) return bike_image;
+    if (catName.contains('scooty')) return scooty_image;
+    if (catName.contains('bus') || catName.contains('van') || catName.contains('truck')) return bus_image;
+    return car_image; // default fallback
+  }
+
   @override
   void setState(fn) {
     if (mounted) super.setState(fn);
@@ -74,15 +94,10 @@ class _ProviderServiceComponentState extends State<ProviderServiceComponent> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CachedImageWidget(
-              url: widget.isFavouriteService
-                  ? widget.serviceData!.serviceAttachments.validate().isNotEmpty
-                      ? widget.serviceData!.serviceAttachments!.first.validate()
-                      : ''
-                  : widget.serviceData!.attachments.validate().isNotEmpty
-                      ? widget.serviceData!.attachments!.first.validate()
-                      : '',
+              url: _getServiceImageUrl(),
               fit: BoxFit.cover,
               height: 85,
+              width: 85,
               circle: false,
               radius: defaultRadius,
             ),
@@ -132,31 +147,37 @@ class _ProviderServiceComponentState extends State<ProviderServiceComponent> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   10.height,
-                  Row(
-                    children: [
-                      // PriceWidget(
-                      //   size: 14,
-                      //   price: widget.serviceData!.getDiscountedPrice,
-                      // ),
-                      // 8.width,
-                      // if (widget.serviceData!.discount.validate() > 0)
-                      //   PriceWidget(
-                      //     size: 12,
-                      //     price: widget.serviceData!.price.validate(),
-                      //     isDiscountedPrice: true,
-                      //     color: textSecondaryColorGlobal,
-                      //     isLineThroughEnabled: true,
-                      //   ),
-                      // 10.width,
-                      if (widget.serviceData!.discount.validate() > 0)
-                        Text(
-                          "${widget.serviceData!.discount.validate()}% off", //Todo translate
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: TextStyle(color: defaultActivityStatus, fontWeight: FontWeight.bold, fontSize: 12),
-                        ).expand(),
-                    ],
-                  )
+                  if (widget.serviceData!.effectivePrice > 0)
+                    Row(
+                      children: [
+                        if (widget.serviceData!.price.validate() == 0 && widget.serviceData!.minPlanPrice != null)
+                          Text("From ", style: secondaryTextStyle(size: 12)),
+                        PriceWidget(
+                          size: 14,
+                          price: widget.serviceData!.effectivePrice,
+                          color: primaryColor,
+                        ),
+                        if (widget.serviceData!.discount.validate() > 0) ...[
+                          8.width,
+                          PriceWidget(
+                            size: 12,
+                            price: widget.serviceData!.price.validate(),
+                            isDiscountedPrice: true,
+                            color: textSecondaryColorGlobal,
+                            isLineThroughEnabled: true,
+                          ),
+                          10.width,
+                          Text(
+                            "${widget.serviceData!.discount.validate()}% off",
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(color: defaultActivityStatus, fontWeight: FontWeight.bold, fontSize: 12),
+                          ).expand(),
+                        ],
+                      ],
+                    )
+                  else
+                    Text("View Plans", style: primaryTextStyle(size: 12, color: primaryColor)),
                 ],
               ),
             ),

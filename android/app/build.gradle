@@ -31,7 +31,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.gocarclean.user"
-    compileSdkVersion 35
+    compileSdkVersion 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -50,7 +50,7 @@ android {
 
     defaultConfig {
         applicationId 'com.gocarclean.user'
-        minSdkVersion 23
+        minSdkVersion flutter.minSdkVersion
         targetSdkVersion 35
         versionCode 102
         versionName '11.13.3'

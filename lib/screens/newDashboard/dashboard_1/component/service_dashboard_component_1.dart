@@ -47,6 +47,20 @@ class _ServiceDashboardComponent1State extends State<ServiceDashboardComponent1>
     //
   }
 
+  String _getServiceImageUrl() {
+    if (widget.isFavouriteService) {
+      if (widget.serviceData.serviceAttachments.validate().isNotEmpty) return widget.serviceData.serviceAttachments!.first.validate();
+    } else {
+      if (widget.serviceData.attachments.validate().isNotEmpty) return widget.serviceData.attachments!.first.validate();
+    }
+    final catName = widget.serviceData.categoryName.validate().toLowerCase();
+    if (catName.contains('car')) return car_image;
+    if (catName.contains('bike')) return bike_image;
+    if (catName.contains('scooty')) return scooty_image;
+    if (catName.contains('bus') || catName.contains('van') || catName.contains('truck')) return bus_image;
+    return car_image;
+  }
+
   @override
   void setState(fn) {
     if (mounted) super.setState(fn);
@@ -84,13 +98,7 @@ class _ServiceDashboardComponent1State extends State<ServiceDashboardComponent1>
               child: Stack(
                 children: [
                   CachedImageWidget(
-                    url: widget.isFavouriteService
-                        ? widget.serviceData.serviceAttachments.validate().isNotEmpty
-                            ? widget.serviceData.serviceAttachments.validate().first.validate()
-                            : ''
-                        : widget.serviceData.attachments.validate().isNotEmpty
-                            ? widget.serviceData.attachments!.first.validate()
-                            : '',
+                    url: _getServiceImageUrl(),
                     fit: BoxFit.cover,
                     height: 180,
                     width: context.width(),
@@ -204,13 +212,13 @@ class _ServiceDashboardComponent1State extends State<ServiceDashboardComponent1>
                         ),
                       if (widget.serviceData.discount != 0) 8.width,
                       PriceWidget(
-                        price: widget.serviceData.price.validate(),
+                        price: widget.serviceData.effectivePrice,
                         isLineThroughEnabled: widget.serviceData.discount != 0 ? true : false,
                         isHourlyService: widget.serviceData.isHourlyService,
                         color: widget.serviceData.discount != 0 ? textSecondaryColorGlobal : primaryColor,
                         hourlyTextColor: widget.serviceData.discount != 0 ? textSecondaryColorGlobal : primaryColor,
                         size: widget.serviceData.discount != 0 ? 14 : 16,
-                        isFreeService: widget.serviceData.type.validate() == SERVICE_TYPE_FREE,
+                        isFreeService: widget.serviceData.isFreeService,
                       ),
                     ],
                   ),

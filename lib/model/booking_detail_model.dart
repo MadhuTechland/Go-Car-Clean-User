@@ -38,7 +38,7 @@ class BookingDetailResponse {
   });
 
   factory BookingDetailResponse.fromJson(Map<String, dynamic> json) {
-    return BookingDetailResponse(
+    final response = BookingDetailResponse(
       bookingActivity: json['booking_activity'] != null ? (json['booking_activity'] as List).map((i) => BookingActivity.fromJson(i)).toList() : null,
       bookingDetail: json['booking_detail'] != null ? BookingData.fromJson(json['booking_detail']) : null,
       couponData: json['coupon_data'] != null ? CouponData.fromJson(json['coupon_data']) : null,
@@ -51,6 +51,22 @@ class BookingDetailResponse {
       serviceProof: json['service_proof'] != null ? (json['service_proof'] as List).map((i) => ServiceProof.fromJson(i)).toList() : null,
       postRequestDetail: json['post_request_detail'] != null ? PostJobData.fromJson(json['post_request_detail']) : null,
     );
+
+    // Extra vehicles may be at top level instead of nested inside booking_detail
+    if (response.bookingDetail != null && response.bookingDetail!.extraVehicles.validate().isEmpty) {
+      if (json['BookingExtraVehicles'] != null) {
+        response.bookingDetail!.extraVehicles = (json['BookingExtraVehicles'] as List).map((i) => ExtraVehicle.fromJson(i)).toList();
+      }
+    }
+
+    // Service addons may also be at top level
+    if (response.bookingDetail != null && response.bookingDetail!.serviceaddon.validate().isEmpty) {
+      if (json['BookingAddonService'] != null) {
+        response.bookingDetail!.serviceaddon = (json['BookingAddonService'] as List).map((i) => Serviceaddon.fromJson(i)).toList();
+      }
+    }
+
+    return response;
   }
 
   Map<String, dynamic> toJson() {

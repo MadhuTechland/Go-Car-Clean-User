@@ -1,3 +1,4 @@
+import 'package:booking_system_flutter/component/cached_image_widget.dart';
 import 'package:booking_system_flutter/main.dart';
 import 'package:booking_system_flutter/screens/service/service_book.dart';
 import 'package:booking_system_flutter/utils/images.dart';
@@ -34,13 +35,47 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Car Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  "https://stimg.cardekho.com/images/carexteriorimages/630x420/Mahindra/XUV-3XO/10184/1751288551835/front-left-side-47.jpg?imwidth=420&impolicy=resize",
-                  height: 220,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: appStore.isDarkMode
+                      ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+                      : null,
+                  boxShadow: appStore.isDarkMode
+                      ? [BoxShadow(color: primaryColor.withOpacity(0.08), blurRadius: 16)]
+                      : null,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Stack(
+                    children: [
+                      Image.network(
+                        "https://stimg.cardekho.com/images/carexteriorimages/630x420/Mahindra/XUV-3XO/10184/1751288551835/front-left-side-47.jpg?imwidth=420&impolicy=resize",
+                        height: 220,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                      if (appStore.isDarkMode)
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: 80,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  scaffoldColorDark.withOpacity(0.8),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -98,9 +133,15 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: appStore.isDarkMode
-                            ? Color(0xFF171A1F)
+                            ? darkSurface
                             : Color(0xFFE0E0E0),
                         borderRadius: BorderRadius.circular(12),
+                        border: appStore.isDarkMode
+                            ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+                            : null,
+                        boxShadow: appStore.isDarkMode
+                            ? [BoxShadow(color: primaryColor.withOpacity(0.06), blurRadius: 12)]
+                            : null,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,9 +198,15 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: appStore.isDarkMode
-                            ? Color(0xFF171A1F)
+                            ? darkSurface
                             : Color(0xFFE0E0E0),
                         borderRadius: BorderRadius.circular(12),
+                        border: appStore.isDarkMode
+                            ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+                            : null,
+                        boxShadow: appStore.isDarkMode
+                            ? [BoxShadow(color: primaryColor.withOpacity(0.06), blurRadius: 12)]
+                            : null,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,8 +290,14 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: appStore.isDarkMode ? Colors.black : Colors.white,
+                  color: appStore.isDarkMode ? darkSurface : Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: appStore.isDarkMode
+                      ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+                      : null,
+                  boxShadow: appStore.isDarkMode
+                      ? [BoxShadow(color: primaryColor.withOpacity(0.06), blurRadius: 12)]
+                      : null,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,14 +363,14 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                       decoration: BoxDecoration(
                         border: Border.all(
                             color: appStore.isDarkMode
-                                ? Colors.white
+                                ? darkBorderGlow
                                 : Colors.black),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: IconButton(
                         icon: Icon(Icons.edit,
                             color: appStore.isDarkMode
-                                ? Colors.white
+                                ? primaryColor
                                 : Colors.black,
                             size: 16),
                         onPressed: () {
@@ -355,26 +408,46 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                           color: selectedWashWhere == 0
                               ? Theme.of(context).primaryColor
                               : appStore.isDarkMode
-                            ? Color(0xFF171A1F)
-                            : Color(0xFFE0E0E0),
+                                  ? quickActionCardBg
+                                  : Color(0xFFE0E0E0),
                           borderRadius: BorderRadius.circular(12),
+                          border: appStore.isDarkMode
+                              ? Border.all(
+                                  color: selectedWashWhere == 0
+                                      ? Colors.transparent
+                                      : quickActionCardBorder,
+                                )
+                              : null,
+                          boxShadow: appStore.isDarkMode && selectedWashWhere == 0
+                              ? [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 16)]
+                              : null,
                         ),
-                        child: Column(
+                        child: Stack(
                           children: [
-                            Image.asset(
-                              "assets/images/home.png",
-                              height: 40,
-                              width: 40,
-                              color: appStore.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black,
+                            Column(
+                              children: [
+                                Image.asset(
+                                  "assets/images/home.png",
+                                  height: 40,
+                                  width: 40,
+                                  color: appStore.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
+                                const SizedBox(height: 6),
+                                Text("At Home",
+                                    style: TextStyle(
+                                        color: appStore.isDarkMode
+                                            ? Colors.white
+                                            : Colors.black)),
+                              ],
                             ),
-                            const SizedBox(height: 6),
-                            Text("At Home",
-                                style: TextStyle(
-                                    color: appStore.isDarkMode
-                                        ? Colors.white
-                                        : Colors.black)),
+                            if (selectedWashWhere == 0)
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Icon(Icons.check_circle, color: Colors.white, size: 20),
+                              ),
                           ],
                         ),
                       ),
@@ -394,26 +467,46 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                           color: selectedWashWhere == 1
                               ? Theme.of(context).primaryColor
                               : appStore.isDarkMode
-                            ? Color(0xFF171A1F)
-                            : Color(0xFFE0E0E0),
+                                  ? quickActionCardBg
+                                  : Color(0xFFE0E0E0),
                           borderRadius: BorderRadius.circular(12),
+                          border: appStore.isDarkMode
+                              ? Border.all(
+                                  color: selectedWashWhere == 1
+                                      ? Colors.transparent
+                                      : quickActionCardBorder,
+                                )
+                              : null,
+                          boxShadow: appStore.isDarkMode && selectedWashWhere == 1
+                              ? [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 16)]
+                              : null,
                         ),
-                        child: Column(
+                        child: Stack(
                           children: [
-                            Image.asset(
-                              "assets/images/shed.png",
-                              height: 40,
-                              width: 40,
-                              color: appStore.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black,
+                            Column(
+                              children: [
+                                Image.asset(
+                                  "assets/images/shed.png",
+                                  height: 40,
+                                  width: 40,
+                                  color: appStore.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
+                                const SizedBox(height: 6),
+                                Text("At Your Shed",
+                                    style: TextStyle(
+                                        color: appStore.isDarkMode
+                                            ? Colors.white
+                                            : Colors.black)),
+                              ],
                             ),
-                            const SizedBox(height: 6),
-                            Text("At Your Shed",
-                                style: TextStyle(
-                                    color: appStore.isDarkMode
-                                        ? Colors.white
-                                        : Colors.black)),
+                            if (selectedWashWhere == 1)
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Icon(Icons.check_circle, color: Colors.white, size: 20),
+                              ),
                           ],
                         ),
                       ),
@@ -424,31 +517,41 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
 
               const SizedBox(height: 20),
 
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Description",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: appStore.isDarkMode ? Colors.white : Colors.black,
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: appStore.isDarkMode ? darkSurface : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: appStore.isDarkMode
+                      ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+                      : null,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Description",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: appStore.isDarkMode ? Colors.white : Colors.black,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "Our premium car wash service ensures your vehicle looks as good as new. "
-                    "From interior cleaning to exterior polishing, every detail is handled "
-                    "with care. Add extra services like AC vent cleaning or leather seat "
-                    "conditioning for a complete experience.",
-                    style: TextStyle(
-                      color: appStore.isDarkMode ? Colors.white : Colors.black,
-                      fontSize: 14,
-                      height: 1.4, // increases line spacing for paragraph
+                    const SizedBox(height: 6),
+                    Text(
+                      "Our premium car wash service ensures your vehicle looks as good as new. "
+                      "From interior cleaning to exterior polishing, every detail is handled "
+                      "with care. Add extra services like AC vent cleaning or leather seat "
+                      "conditioning for a complete experience.",
+                      style: TextStyle(
+                        color: appStore.isDarkMode ? Colors.white70 : Colors.black,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                      softWrap: true,
                     ),
-                    softWrap: true,
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -491,9 +594,12 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
               Container(
                 decoration: BoxDecoration(
                   color: appStore.isDarkMode
-                            ? Color(0xFF171A1F)
+                            ? darkSurface
                             : Color(0xFFE0E0E0),
                   borderRadius: BorderRadius.circular(12),
+                  border: appStore.isDarkMode
+                      ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+                      : null,
                 ),
                 child: Theme(
                   data: Theme.of(context).copyWith(
@@ -503,6 +609,8 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                   child: Column(
                     children: [
                       ExpansionTile(
+                        iconColor: appStore.isDarkMode ? primaryColor : null,
+                        collapsedIconColor: appStore.isDarkMode ? primaryColor : null,
                         title: Text(
                             "What services are included in the Basic Plan?",
                             style: TextStyle(
@@ -516,13 +624,15 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                               "The Basic Plan includes interior cleaning, foam wash, wax work, tyre & alloy cleaning, and more.",
                               style: TextStyle(
                                   color: appStore.isDarkMode
-                                      ? Colors.white
+                                      ? Colors.white70
                                       : Colors.black54),
                             ),
                           )
                         ],
                       ),
                       ExpansionTile(
+                        iconColor: appStore.isDarkMode ? primaryColor : null,
+                        collapsedIconColor: appStore.isDarkMode ? primaryColor : null,
                         title: Text("Do you offer doorstep service?",
                             style: TextStyle(
                                 color: appStore.isDarkMode
@@ -535,13 +645,15 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                               "Yes, we provide car wash and detailing services at your doorstep for convenience.",
                               style: TextStyle(
                                   color: appStore.isDarkMode
-                                      ? Colors.white
+                                      ? Colors.white70
                                       : Colors.black54),
                             ),
                           )
                         ],
                       ),
                       ExpansionTile(
+                        iconColor: appStore.isDarkMode ? primaryColor : null,
+                        collapsedIconColor: appStore.isDarkMode ? primaryColor : null,
                         title: Text("Can I reschedule my booking?",
                             style: TextStyle(
                                 color: appStore.isDarkMode
@@ -554,7 +666,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                               "Absolutely! You can reschedule your booking from the app at no extra cost.",
                               style: TextStyle(
                                   color: appStore.isDarkMode
-                                      ? Colors.white
+                                      ? Colors.white70
                                       : Colors.black54),
                             ),
                           )
@@ -698,7 +810,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                             context: context,
                             isScrollControlled: true,
                             backgroundColor: appStore.isDarkMode
-                            ? Color(0xFF171A1F)
+                            ? scaffoldColorDark
                             : Color(0xFFE0E0E0),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.vertical(
@@ -725,16 +837,10 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                                                     bottom:
                                                         16), // spacing below the bar
                                                 decoration: BoxDecoration(
-                                                  color: context
-                                                      .primaryColor, // color of the bar
+                                                  color: primaryColor,
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                           10), // rounded edges
-                                                  border: Border.all(
-                                                      color: appStore.isDarkMode
-                                                          ? Colors.white
-                                                          : Colors.black,
-                                                      width: 1), // border
                                                 ),
                                               ),
                                               Text(
@@ -769,7 +875,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                                                     },
                                                     child: Row(
                                                       children: [
-                                                        Image.asset(bike_image,
+                                                        CachedImageWidget(url: bike_image,
                                                             width: 32,
                                                             height: 32),
                                                         SizedBox(width: 6),
@@ -817,7 +923,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                                                     },
                                                     child: Row(
                                                       children: [
-                                                        Image.asset(car_image,
+                                                        CachedImageWidget(url: car_image,
                                                             width: 32,
                                                             height: 32),
                                                         SizedBox(width: 6),
@@ -865,7 +971,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                                                     },
                                                     child: Row(
                                                       children: [
-                                                        Image.asset(bus_image,
+                                                        CachedImageWidget(url: bus_image,
                                                             width: 32,
                                                             height: 32),
                                                         SizedBox(width: 6),
@@ -1001,9 +1107,8 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                                                                           MainAxisSize
                                                                               .min,
                                                                       children: [
-                                                                        Image
-                                                                            .asset(
-                                                                          (type == 0
+                                                                        CachedImageWidget(
+                                                                          url: (type == 0
                                                                               ? bikeBrands[i]['img']
                                                                               : type == 1
                                                                                   ? carBrands[i]['img']
@@ -1160,8 +1265,8 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                                                                         MainAxisSize
                                                                             .min,
                                                                     children: [
-                                                                      Image.asset(
-                                                                          models[j]['img']
+                                                                      CachedImageWidget(
+                                                                          url: models[j]['img']
                                                                               as String,
                                                                           width:
                                                                               48,
@@ -1260,12 +1365,18 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                                                   ]
                                                 ]
                                               ],
-                                              SizedBox(
+                                              Container(
+                                                decoration: appStore.isDarkMode
+                                                    ? BoxDecoration(
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 16)],
+                                                      )
+                                                    : null,
                                                 width: double.infinity,
                                                 child: ElevatedButton(
                                                   style: ElevatedButton.styleFrom(
                                                       backgroundColor:
-                                                          Colors.blue,
+                                                          primaryColor,
                                                       padding: const EdgeInsets
                                                           .symmetric(
                                                           vertical: 14),
@@ -1284,13 +1395,10 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                                                       ),
                                                     );
                                                   },
-                                                  child: Text("Confirm",
+                                                  child: const Text("Confirm",
                                                       style: TextStyle(
                                                           fontSize: 16,
-                                                          color: appStore
-                                                                  .isDarkMode
-                                                              ? Colors.white
-                                                              : Colors.black)),
+                                                          color: Colors.white)),
                                                 ),
                                               )
                                             ],
@@ -1361,11 +1469,17 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
               _inputField("Enter mobile number", phoneCtrl),
 
               const SizedBox(height: 20),
-              SizedBox(
+              Container(
+                decoration: appStore.isDarkMode
+                    ? BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 16)],
+                      )
+                    : null,
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12))),
@@ -1377,12 +1491,10 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                       ),
                     );
                   },
-                  child: Text("Book Now",
+                  child: const Text("Book Now",
                       style: TextStyle(
                           fontSize: 16,
-                          color: appStore.isDarkMode
-                              ? Colors.white
-                              : Colors.black)),
+                          color: Colors.white)),
                 ),
               )
             ],
@@ -1448,9 +1560,15 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: appStore.isDarkMode
-                            ? Color(0xFF171A1F)
+                            ? darkSurface
                             : Color(0xFFE0E0E0),
         borderRadius: BorderRadius.circular(12),
+        border: appStore.isDarkMode
+            ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+            : null,
+        boxShadow: appStore.isDarkMode
+            ? [BoxShadow(color: primaryColor.withOpacity(0.06), blurRadius: 12)]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1493,11 +1611,18 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                 ),
             ],
           ),
-          SizedBox(
+          const SizedBox(height: 8),
+          Container(
+            decoration: appStore.isDarkMode
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 12)],
+                  )
+                : null,
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -1509,7 +1634,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
               child: Text(
                 "Basic Plan ₹99",
                 style: TextStyle(
-                    color: appStore.isDarkMode ? Colors.white : Colors.black,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold),
               ),
             ),
@@ -1525,20 +1650,24 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: appStore.isDarkMode
-                            ? Color(0xFF171A1F)
+                            ? darkSurface
                             : Color(0xFFE0E0E0),
         borderRadius: BorderRadius.circular(12),
+        border: appStore.isDarkMode
+            ? Border.all(color: darkBorderGlow.withOpacity(0.4))
+            : null,
       ),
       child: Row(
         children: [
           /// 🔹 Image
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              imagePath,
+            child: CachedImageWidget(
+              url: imagePath,
               width: 40,
               height: 40,
               fit: BoxFit.cover,
+              color: appStore.isDarkMode ? primaryColor : null,
             ),
           ),
           const SizedBox(width: 12),
@@ -1557,7 +1686,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                 Text(price,
                     style: TextStyle(
                         color:
-                            appStore.isDarkMode ? Colors.white : Colors.black,
+                            appStore.isDarkMode ? Colors.white70 : Colors.black,
                         fontSize: 13)),
               ],
             ),
@@ -1568,11 +1697,11 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               border: Border.all(
-                  color: appStore.isDarkMode ? Colors.white : Colors.black),
+                  color: appStore.isDarkMode ? darkBorderGlow : Colors.black),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(Icons.add,
-                color: appStore.isDarkMode ? Colors.white : Colors.black,
+                color: appStore.isDarkMode ? primaryColor : Colors.black,
                 size: 18),
           ),
         ],
@@ -1585,10 +1714,18 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: appStore.isDarkMode
-                            ? Color(0xFF171A1F)
-                            : Color(0xFFE0E0E0),
+        gradient: appStore.isDarkMode
+            ? LinearGradient(
+                colors: [quickActionCardBg, darkSurface],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        color: appStore.isDarkMode ? null : Color(0xFFE0E0E0),
         borderRadius: BorderRadius.circular(12),
+        border: appStore.isDarkMode
+            ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+            : null,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1610,7 +1747,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
           /// 🔹 Button with + icon
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
+              backgroundColor: primaryColor,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1619,14 +1756,10 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
             onPressed: () {
               // TODO: open bid price flow
             },
-            icon: Icon(Icons.add,
-                size: 18,
-                color: appStore.isDarkMode ? Colors.white : Colors.black),
-            label: Text(
+            icon: const Icon(Icons.add, size: 18, color: Colors.white),
+            label: const Text(
               "Bid Price",
-              style: TextStyle(
-                  color: appStore.isDarkMode ? Colors.white : Colors.black,
-                  fontSize: 14),
+              style: TextStyle(color: Colors.white, fontSize: 14),
             ),
           ),
         ],
@@ -1638,8 +1771,11 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF171A1F),
+        color: appStore.isDarkMode ? darkSurface : Color(0xFFE0E0E0),
         borderRadius: BorderRadius.circular(12),
+        border: appStore.isDarkMode
+            ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+            : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1660,8 +1796,16 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
       width: 120,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        image: DecorationImage(
-          image: AssetImage(imagePath),
+        border: appStore.isDarkMode
+            ? Border.all(color: darkBorderGlow.withOpacity(0.3))
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: CachedImageWidget(
+          url: imagePath,
+          width: 120,
+          height: 100,
           fit: BoxFit.cover,
         ),
       ),
@@ -1674,9 +1818,12 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: appStore.isDarkMode
-                            ? Color(0xFF171A1F)
+                            ? darkSurface
                             : Color(0xFFE0E0E0),
         borderRadius: BorderRadius.circular(12),
+        border: appStore.isDarkMode
+            ? Border.all(color: darkBorderGlow.withOpacity(0.3))
+            : null,
       ),
       child: Row(
         children: [
@@ -1707,7 +1854,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                   date,
                   style: TextStyle(
                     fontSize: 12,
-                    color: appStore.isDarkMode ? Colors.white : Colors.black38,
+                    color: appStore.isDarkMode ? Colors.white60 : Colors.black38,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -1723,7 +1870,7 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
           ),
 
           /// 🔹 Rating
-          const Icon(Icons.star, color: Colors.green, size: 18),
+          Icon(Icons.star, color: ratingBarColor, size: 18),
           Text(" 4.5",
               style: TextStyle(
                   color: appStore.isDarkMode ? Colors.white : Colors.black)),
@@ -1737,8 +1884,14 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: appStore.isDarkMode ? Colors.black : Colors.white,
+        color: appStore.isDarkMode ? darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: appStore.isDarkMode
+            ? Border.all(color: darkBorderGlow.withOpacity(0.5))
+            : null,
+        boxShadow: appStore.isDarkMode
+            ? [BoxShadow(color: primaryColor.withOpacity(0.06), blurRadius: 12)]
+            : null,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1764,8 +1917,9 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
                             appStore.isDarkMode ? Colors.white : Colors.black)),
                 const SizedBox(height: 6),
                 Text("Price : $price",
-                    style: const TextStyle(
-                        color: Colors.green, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        color: appStore.isDarkMode ? primaryColor : Colors.green,
+                        fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -1774,12 +1928,12 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
           Container(
             decoration: BoxDecoration(
               border: Border.all(
-                  color: appStore.isDarkMode ? Colors.white : Colors.black),
+                  color: appStore.isDarkMode ? darkBorderGlow : Colors.black),
               borderRadius: BorderRadius.circular(8),
             ),
             child: IconButton(
               icon: Icon(Icons.edit,
-                  color: appStore.isDarkMode ? Colors.white : Colors.black,
+                  color: appStore.isDarkMode ? primaryColor : Colors.black,
                   size: 16),
               onPressed: () {
                 // TODO: Edit vehicle action
@@ -1800,17 +1954,27 @@ class _ViewInstantWashState extends State<ViewInstantWash> {
         hintText: hint,
         hintStyle: TextStyle(
             color: appStore.isDarkMode
-                            ? Colors.white
+                            ? greetingTextColor
                             : Colors.black),
         filled: true,
         fillColor: appStore.isDarkMode
-                            ? Color(0xFF171A1F)
+                            ? darkSurface
                             : Color(0xFFE0E0E0),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+                color: appStore.isDarkMode ? primaryColor : Colors.black,
+                width: 1.5)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: appStore.isDarkMode
+                ? BorderSide(color: darkBorderGlow.withOpacity(0.3))
+                : BorderSide.none),
       ),
     );
   }

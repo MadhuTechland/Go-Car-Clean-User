@@ -153,12 +153,23 @@ Future<Map<String, dynamic>> handleSadadResponse(Response res) async {
 
 Future<void> reGenerateToken() async {
   log('Regenerating Token');
-  Map req = {
-    UserKeys.email: appStore.userEmail,
-    UserKeys.password: getStringAsync(USER_PASSWORD),
-  };
+  Map req;
 
-  return await loginUser(req, isSocialLogin: !isLoginTypeUser).then((value) async {
+  if (isLoginTypeOTP) {
+    req = {
+      'username': appStore.userContactNumber,
+      'password': getStringAsync(USER_PASSWORD),
+      'login_type': LOGIN_TYPE_OTP,
+      'uid': appStore.uid,
+    };
+  } else {
+    req = {
+      UserKeys.email: appStore.userEmail,
+      UserKeys.password: getStringAsync(USER_PASSWORD),
+    };
+  }
+
+  return await loginUser(req, isSocialLogin: isLoginTypeOTP || !isLoginTypeUser).then((value) async {
     await appStore.setToken(value.userData!.apiToken.validate());
     appStore.setLoading(false);
   }).catchError((e) {

@@ -6,7 +6,7 @@ import 'package:booking_system_flutter/component/location_service_dialog.dart';
 import 'package:booking_system_flutter/component/new_update_dialog.dart';
 import 'package:booking_system_flutter/main.dart';
 import 'package:booking_system_flutter/network/rest_apis.dart';
-import 'package:booking_system_flutter/screens/auth/sign_in_screen.dart';
+import 'package:booking_system_flutter/screens/auth/phone_entry_screen.dart';
 import 'package:booking_system_flutter/services/location_service.dart';
 import 'package:booking_system_flutter/utils/colors.dart';
 import 'package:booking_system_flutter/utils/images.dart';
@@ -519,7 +519,7 @@ void doIfLoggedIn(BuildContext context, VoidCallback callback) {
   if (appStore.isLoggedIn) {
     callback.call();
   } else {
-    SignInScreen(returnExpected: true).launch(context).then((value) {
+    PhoneEntryScreen(returnExpected: true).launch(context).then((value) {
       if (value ?? false) {
         callback.call();
       }

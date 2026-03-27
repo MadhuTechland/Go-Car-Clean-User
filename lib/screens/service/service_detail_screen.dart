@@ -1,4 +1,5 @@
 import 'package:booking_system_flutter/component/base_scaffold_widget.dart';
+import 'package:booking_system_flutter/component/cached_image_widget.dart';
 import 'package:booking_system_flutter/component/loader_widget.dart';
 import 'package:booking_system_flutter/component/online_service_icon_widget.dart';
 import 'package:booking_system_flutter/component/price_widget.dart';
@@ -77,6 +78,15 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
     super.initState();
     serviceAddonStore.selectedServiceAddon.clear();
     setStatusBarColor(transparentColor);
+
+    // Pre-fill personal details from logged-in user
+    if (appStore.isLoggedIn) {
+      nameCtrl.text = appStore.userFullName;
+      String phone = appStore.userContactNumber;
+      if (phone.contains('-')) phone = phone.split('-').last;
+      phoneCtrl.text = phone;
+    }
+
     init();
   }
 
@@ -304,16 +314,16 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
 
   void bookNow(ServiceDetailResponse serviceDetailResponse) {
     doIfLoggedIn(context, () {
-      if ((serviceDetailResponse.serviceDetail!.plans ?? []).isEmpty &&
+      // If plans exist, user must select one
+      if ((serviceDetailResponse.serviceDetail!.plans ?? []).isNotEmpty &&
           selectedPlanId == null) {
-        toast("Sorry, this service has no plans."); // 🔥 show message
+        toast("Please select a plan");
         return;
       }
 
-      if ((serviceDetailResponse.serviceDetail!.plans ?? []).isNotEmpty &&
-          selectedPlanId == null) {
-        toast("Please select a plan"); // 🔥 show message
-        return;
+      // If no plans exist, use the service price directly
+      if ((serviceDetailResponse.serviceDetail!.plans ?? []).isEmpty) {
+        selectedPlanPrice = serviceDetailResponse.serviceDetail!.price.validate().toDouble();
       }
 
       if (phoneCtrl.text.trim().isEmpty) {
@@ -489,30 +499,35 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                             ],
                           ),
                         10.height,
-                        // Row(
-                        //   children: [
-                        //     if (snap.data!.serviceDetail!.discount.validate() > 0)
-                        //       PriceWidget(
-                        //         size: 14,
-                        //         price: snap.data!.serviceDetail!.getDiscountedPrice.validate(),
-                        //       ).paddingRight(8),
-                        //     PriceWidget(
-                        //       size: snap.data!.serviceDetail!.discount != 0 ? 12 : 14,
-                        //       price: snap.data!.serviceDetail!.price.validate(),
-                        //       isLineThroughEnabled: snap.data!.serviceDetail!.discount != 0 ? true : false,
-                        //       color: snap.data!.serviceDetail!.discount != 0 ? textSecondaryColorGlobal : primaryColor,
-                        //     ),
-                        //     10.width,
-                        //     if (snap.data!.serviceDetail!.discount.validate() > 0)
-                        //       Text(
-                        //         "${snap.data!.serviceDetail!.discount.validate()}% ${language.lblOff}",
-                        //         overflow: TextOverflow.ellipsis,
-                        //         maxLines: 1,
-                        //         style: TextStyle(color: defaultActivityStatus, fontWeight: FontWeight.bold, fontSize: 12),
-                        //       ).expand(),
-                        //   ],
-                        // ),
-                        // 10.height
+                        if (snap.data!.serviceDetail!.effectivePrice > 0)
+                          Row(
+                            children: [
+                              if (snap.data!.serviceDetail!.price.validate() == 0 && snap.data!.serviceDetail!.minPlanPrice != null)
+                                Text("Starting from ", style: secondaryTextStyle(size: 14)),
+                              PriceWidget(
+                                size: 18,
+                                price: snap.data!.serviceDetail!.effectivePrice,
+                                color: primaryColor,
+                              ),
+                              if (snap.data!.serviceDetail!.discount.validate() > 0) ...[
+                                8.width,
+                                PriceWidget(
+                                  size: 14,
+                                  price: snap.data!.serviceDetail!.price.validate(),
+                                  isLineThroughEnabled: true,
+                                  color: textSecondaryColorGlobal,
+                                ),
+                                10.width,
+                                Text(
+                                  "${snap.data!.serviceDetail!.discount.validate()}% ${language.lblOff}",
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: TextStyle(color: defaultActivityStatus, fontWeight: FontWeight.bold, fontSize: 12),
+                                ).expand(),
+                              ],
+                            ],
+                          ),
+                        10.height,
                       ],
                     ).paddingSymmetric(horizontal: 16),
                     Row(
@@ -691,30 +706,38 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                         },
                                         child: Container(
                                           padding: EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 6),
+                                              horizontal: 14, vertical: 10),
                                           decoration: BoxDecoration(
-                                            border: Border.all(
-                                                color: appStore.isDarkMode
-                                                    ? Colors.white
-                                                    : Colors.black),
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                primaryColor,
+                                                primaryColor.withOpacity(0.8),
+                                              ],
+                                            ),
                                             borderRadius:
-                                                BorderRadius.circular(8),
+                                                BorderRadius.circular(10),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: primaryColor.withOpacity(0.3),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ],
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(Icons.add,
-                                                  color: appStore.isDarkMode
-                                                      ? Colors.white
-                                                      : Colors.black,
-                                                  size: 16),
+                                              Icon(Icons.add_circle_outline,
+                                                  color: Colors.white,
+                                                  size: 18),
                                               SizedBox(width: 6),
                                               Text(
                                                 "Add Extra Vehicles",
                                                 style: TextStyle(
-                                                    color: appStore.isDarkMode
-                                                        ? Colors.white
-                                                        : Colors.black),
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -724,7 +747,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                   ),
                                   const SizedBox(height: 12),
 
-                                  // Vehicle Cards (example 2 cards)
+                                  // Vehicle Cards
                                   Column(
                                     children: selectedPlans
                                         .asMap()
@@ -734,14 +757,10 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                       final plan = entry.value;
 
                                       return _vehicleCard(
-                                        plan.vehicleType,
-                                        plan.vehicleName,
-                                        plan.model,
-                                        plan.price,
+                                        plan,
                                         () {
                                           setState(() {
-                                            selectedPlans.removeAt(
-                                                index); // 🔥 remove the selected vehicle
+                                            selectedPlans.removeAt(index);
                                           });
                                         },
                                       );
@@ -853,12 +872,20 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                   ],
                 ),
               ),
-              AppButton(
+              Container(
+                decoration: appStore.isDarkMode
+                    ? BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 16)],
+                      )
+                    : null,
+                child: AppButton(
                 onTap: () {
                   // Instead of calling bookNow directly, show bottom sheet
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
+                    backgroundColor: appStore.isDarkMode ? scaffoldColorDark : null,
                     shape: const RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(16)),
@@ -916,7 +943,10 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                 Text(
                                   "Where should we wash your car?",
                                   style: boldTextStyle(
-                                      size: 16, color: Colors.white),
+                                      size: 16,
+                                      color: appStore.isDarkMode
+                                          ? Colors.white
+                                          : Colors.black),
                                 ),
                                 const SizedBox(height: 10),
 
@@ -936,27 +966,47 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                             color: selectedWashWhere == 0
                                                 ? Theme.of(context).primaryColor
                                                 : appStore.isDarkMode
-                                                    ? Color(0xFF171A1F)
+                                                    ? quickActionCardBg
                                                     : Color(0xFFE0E0E0),
                                             borderRadius:
                                                 BorderRadius.circular(12),
+                                            border: appStore.isDarkMode
+                                                ? Border.all(
+                                                    color: selectedWashWhere == 0
+                                                        ? Colors.transparent
+                                                        : quickActionCardBorder,
+                                                  )
+                                                : null,
+                                            boxShadow: appStore.isDarkMode && selectedWashWhere == 0
+                                                ? [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 16)]
+                                                : null,
                                           ),
-                                          child: Column(
+                                          child: Stack(
                                             children: [
-                                              Image.asset(
-                                                "assets/images/home.png",
-                                                height: 40,
-                                                width: 40,
-                                                color: appStore.isDarkMode
-                                                    ? Colors.white
-                                                    : Colors.black,
+                                              Column(
+                                                children: [
+                                                  Image.asset(
+                                                    "assets/images/home.png",
+                                                    height: 40,
+                                                    width: 40,
+                                                    color: appStore.isDarkMode
+                                                        ? Colors.white
+                                                        : Colors.black,
+                                                  ),
+                                                  const SizedBox(height: 6),
+                                                  Text("At Home",
+                                                      style: TextStyle(
+                                                          color: appStore.isDarkMode
+                                                              ? Colors.white
+                                                              : Colors.black)),
+                                                ],
                                               ),
-                                              const SizedBox(height: 6),
-                                              Text("At Home",
-                                                  style: TextStyle(
-                                                      color: appStore.isDarkMode
-                                                          ? Colors.white
-                                                          : Colors.black)),
+                                              if (selectedWashWhere == 0)
+                                                Positioned(
+                                                  top: 0,
+                                                  right: 0,
+                                                  child: Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                                ),
                                             ],
                                           ),
                                         ),
@@ -976,27 +1026,47 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                             color: selectedWashWhere == 1
                                                 ? Theme.of(context).primaryColor
                                                 : appStore.isDarkMode
-                                                    ? Color(0xFF171A1F)
+                                                    ? quickActionCardBg
                                                     : Color(0xFFE0E0E0),
                                             borderRadius:
                                                 BorderRadius.circular(12),
+                                            border: appStore.isDarkMode
+                                                ? Border.all(
+                                                    color: selectedWashWhere == 1
+                                                        ? Colors.transparent
+                                                        : quickActionCardBorder,
+                                                  )
+                                                : null,
+                                            boxShadow: appStore.isDarkMode && selectedWashWhere == 1
+                                                ? [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 16)]
+                                                : null,
                                           ),
-                                          child: Column(
+                                          child: Stack(
                                             children: [
-                                              Image.asset(
-                                                "assets/images/shed.png",
-                                                height: 40,
-                                                width: 40,
-                                                color: appStore.isDarkMode
-                                                    ? Colors.white
-                                                    : Colors.black,
+                                              Column(
+                                                children: [
+                                                  Image.asset(
+                                                    "assets/images/shed.png",
+                                                    height: 40,
+                                                    width: 40,
+                                                    color: appStore.isDarkMode
+                                                        ? Colors.white
+                                                        : Colors.black,
+                                                  ),
+                                                  const SizedBox(height: 6),
+                                                  Text("At Your Shed",
+                                                      style: TextStyle(
+                                                          color: appStore.isDarkMode
+                                                              ? Colors.white
+                                                              : Colors.black)),
+                                                ],
                                               ),
-                                              const SizedBox(height: 6),
-                                              Text("At Your Shed",
-                                                  style: TextStyle(
-                                                      color: appStore.isDarkMode
-                                                          ? Colors.white
-                                                          : Colors.black)),
+                                              if (selectedWashWhere == 1)
+                                                Positioned(
+                                                  top: 0,
+                                                  right: 0,
+                                                  child: Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                                ),
                                             ],
                                           ),
                                         ),
@@ -1008,19 +1078,27 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                                 const SizedBox(height: 20),
 
                                 // Confirm button
-                                AppButton(
-                                  onTap: () {
-                                    Navigator.pop(
-                                        context); // close bottom sheet
-                                    selectedPackage = null;
-                                    bookNow(snap
-                                        .data!); // 🔥 your original function
-                                  },
-                                  color: context.primaryColor,
-                                  child: Text("Confirm",
-                                      style: boldTextStyle(color: white)),
-                                  width: context.width(),
-                                  textColor: Colors.white,
+                                Container(
+                                  decoration: appStore.isDarkMode
+                                      ? BoxDecoration(
+                                          borderRadius: BorderRadius.circular(12),
+                                          boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 16)],
+                                        )
+                                      : null,
+                                  child: AppButton(
+                                    onTap: () {
+                                      Navigator.pop(
+                                          context); // close bottom sheet
+                                      selectedPackage = null;
+                                      bookNow(snap
+                                          .data!); // 🔥 your original function
+                                    },
+                                    color: context.primaryColor,
+                                    child: Text("Confirm",
+                                        style: boldTextStyle(color: white)),
+                                    width: context.width(),
+                                    textColor: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -1035,7 +1113,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
                     style: boldTextStyle(color: white)),
                 width: context.width(),
                 textColor: Colors.white,
-              ).paddingSymmetric(horizontal: 16.0, vertical: 16.0)
+              ),).paddingSymmetric(horizontal: 16.0, vertical: 16.0)
             ],
           ),
         );
@@ -1091,64 +1169,80 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
     );
   }
 
-  Widget _vehicleCard(
-    String vehicle,
-    String name,
-    String model,
-    double price,
-    VoidCallback onDelete,
-  ) {
+  String _vehicleEmoji(String vehicleType) {
+    switch (vehicleType.toLowerCase()) {
+      case 'car': return '\u{1F697}';
+      case 'bike': return '\u{1F3CD}';
+      case 'vans': return '\u{1F690}';
+      case 'trucks': return '\u{1F69B}';
+      default: return '\u{1F698}';
+    }
+  }
+
+  Widget _vehicleCard(SelectedVehiclePlan plan, VoidCallback onDelete) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: appStore.isDarkMode ? Colors.black : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: appStore.isDarkMode ? darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: appStore.isDarkMode
+              ? darkBorderGlow.withOpacity(0.5)
+              : const Color(0xFFE0E0E0),
+        ),
+        boxShadow: appStore.isDarkMode
+            ? [BoxShadow(color: primaryColor.withOpacity(0.06), blurRadius: 8)]
+            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left Info Column
+          Text(_vehicleEmoji(plan.vehicleType), style: const TextStyle(fontSize: 22)),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Vehicle : $vehicle",
-                    style: TextStyle(
-                        color:
-                            appStore.isDarkMode ? Colors.white : Colors.black)),
-                const SizedBox(height: 6),
-                Text("Bike name : $name",
-                    style: TextStyle(
-                        color:
-                            appStore.isDarkMode ? Colors.white : Colors.black)),
-                const SizedBox(height: 6),
-                Text("Model : $model",
-                    style: TextStyle(
-                        color:
-                            appStore.isDarkMode ? Colors.white : Colors.black)),
-                const SizedBox(height: 6),
                 Text(
-                  "Price : ₹${price.toStringAsFixed(2)}", // ✅ format double as currency
-                  style: const TextStyle(
-                      color: Colors.green, fontWeight: FontWeight.bold),
+                  '${plan.vehicleName}  ·  ${plan.model}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: appStore.isDarkMode ? Colors.white : Colors.black,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${plan.planName.isNotEmpty ? plan.planName : "Plan"}  ·  ₹${plan.price.toStringAsFixed(0)}/month',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: appStore.isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-
-          // Right delete Icon
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(
-                  color: appStore.isDarkMode ? Colors.white : Colors.black),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.delete,
-                  color: appStore.isDarkMode ? Colors.white : Colors.black,
-                  size: 16),
-              onPressed: onDelete, // 🔥 trigger delete
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onDelete,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: appStore.isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.grey.withOpacity(0.15),
+              ),
+              child: Icon(
+                Icons.close,
+                size: 16,
+                color: appStore.isDarkMode ? Colors.white70 : Colors.black54,
+              ),
             ),
           ),
         ],
@@ -1159,23 +1253,35 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
   Widget _inputFieldName(String hint, TextEditingController ctrl) {
     return TextField(
       controller: ctrl,
-      keyboardType: TextInputType.name, // text keyboard for names
-      textCapitalization: TextCapitalization.words, // capitalize words
+      keyboardType: TextInputType.name,
+      textCapitalization: TextCapitalization.words,
       style: TextStyle(
         color: appStore.isDarkMode ? Colors.white : Colors.black,
       ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          color: appStore.isDarkMode ? Colors.white70 : Colors.black54,
+          color: appStore.isDarkMode ? greetingTextColor : Colors.black54,
         ),
         filled: true,
-        fillColor: appStore.isDarkMode ? Color(0xFF171A1F) : Color(0xFFE0E0E0),
+        fillColor: appStore.isDarkMode ? darkSurface : Color(0xFFE0E0E0),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+              color: appStore.isDarkMode ? primaryColor : Colors.black,
+              width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: appStore.isDarkMode
+              ? BorderSide(color: darkBorderGlow.withOpacity(0.3))
+              : BorderSide.none,
         ),
       ),
     );
@@ -1184,24 +1290,36 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
   Widget _inputField(String hint, TextEditingController ctrl) {
     return TextField(
       controller: ctrl,
-      keyboardType: TextInputType.number, // only number keyboard
-      maxLength: 10, // enforce 10 digits
+      keyboardType: TextInputType.number,
+      maxLength: 10,
       style: TextStyle(
         color: appStore.isDarkMode ? Colors.white : Colors.black,
       ),
       decoration: InputDecoration(
-        counterText: "", // hides the character counter
+        counterText: "",
         hintText: hint,
         hintStyle: TextStyle(
-          color: appStore.isDarkMode ? Colors.white : Colors.black,
+          color: appStore.isDarkMode ? greetingTextColor : Colors.black,
         ),
         filled: true,
-        fillColor: appStore.isDarkMode ? Color(0xFF171A1F) : Color(0xFFE0E0E0),
+        fillColor: appStore.isDarkMode ? darkSurface : Color(0xFFE0E0E0),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+              color: appStore.isDarkMode ? primaryColor : Colors.black,
+              width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: appStore.isDarkMode
+              ? BorderSide(color: darkBorderGlow.withOpacity(0.3))
+              : BorderSide.none,
         ),
       ),
     );
@@ -1210,132 +1328,185 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen>
   Widget _plansForModel(List<ServicePlanData> plans) {
     if (plans.isEmpty) return SizedBox();
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: plans.map((plan) {
+      child: Column(
+        children: plans.asMap().entries.map((entry) {
+          final index = entry.key;
+          final plan = entry.value;
+          String? badge;
+          if (index == 1 && plans.length > 1) badge = 'MOST POPULAR';
+          if (index == plans.length - 1 && plans.length > 2) badge = 'BEST VALUE';
+
           return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _planCard(
-              plan.id ?? 0,
-              plan.name ?? "Plan",
-              "₹${plan.amount ?? '0'}/WASH",
-              plan.items ?? [],
-              plan.amount ?? "0",
-            ),
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _planCard(plan, badge: badge),
           );
         }).toList(),
       ),
     );
   }
 
-  Widget _planCard(
-    int planId,
-    String title,
-    String price,
-    List<ServicePlanItemData> items,
-    String amount,
-  ) {
+  Widget _planCard(ServicePlanData plan, {String? badge}) {
+    final planId = plan.id ?? 0;
     final isSelected = selectedPlanId == planId;
+    final amount = plan.amount ?? '0';
+    final title = plan.name ?? 'Plan';
+    final items = plan.items ?? [];
+    final washType = plan.washType ?? '';
 
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: appStore.isDarkMode
-            ? const Color(0xFF171A1F)
-            : const Color(0xFFE0E0E0),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title & Price
-          // Title & Price
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedPlanId = planId;
+          selectedPlanPrice = double.tryParse(amount) ?? 0;
+        });
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: appStore.isDarkMode ? darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? context.primaryColor
+                : appStore.isDarkMode
+                    ? darkBorderGlow.withOpacity(0.5)
+                    : const Color(0xFFE0E0E0),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [BoxShadow(color: context.primaryColor.withOpacity(0.15), blurRadius: 12)]
+              : appStore.isDarkMode
+                  ? [BoxShadow(color: primaryColor.withOpacity(0.06), blurRadius: 12)]
+                  : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Badge
+            if (badge != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: badge == 'MOST POPULAR'
+                      ? Colors.orange.withOpacity(0.15)
+                      : Colors.green.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
                 child: Text(
-                  title,
+                  badge,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: badge == 'MOST POPULAR' ? Colors.orange[700] : Colors.green[700],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+
+            // Title & Price
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: appStore.isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+                Text(
+                  '₹$amount/month',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: appStore.isDarkMode ? Colors.white : Colors.black,
+                    fontSize: 16,
+                    color: context.primaryColor,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis, // ✅ truncate long text
                 ),
-              ),
-              const SizedBox(width: 6), // spacing between name and price
-              Text(
-                price,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: appStore.isDarkMode ? Colors.white : Colors.black,
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
-          const SizedBox(height: 10),
-
-          // Features
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: items.map((item) {
-              final isActive = item.status == 1;
-              return Row(
+            // Wash info row
+            if (washType.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
                 children: [
-                  Icon(
-                    isActive ? Icons.check_circle : Icons.cancel,
-                    size: 14,
-                    color: isActive ? Colors.green : Colors.red,
-                  ),
-                  const SizedBox(width: 6),
+                  Icon(Icons.autorenew, size: 16, color: appStore.isDarkMode ? Colors.white70 : Colors.black54),
+                  const SizedBox(width: 4),
                   Text(
-                    item.name ?? '',
+                    '$washType washes/month',
                     style: TextStyle(
-                      color: appStore.isDarkMode ? Colors.white : Colors.black,
-                      decoration: isActive ? null : TextDecoration.lineThrough,
+                      fontSize: 13,
+                      color: appStore.isDarkMode ? Colors.white70 : Colors.black54,
                     ),
                   ),
                 ],
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 10),
-
-          // Select button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isSelected ? context.primaryColor : Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
               ),
-              onPressed: () {
-                setState(() {
-                  selectedPlanId = planId; // ✅ mark selected
-                  selectedPlanPrice = double.tryParse(amount) ?? 0;
-                });
-              },
-              child: Text(
-                "$title ₹$amount",
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black,
-                  fontWeight: FontWeight.bold,
+            ],
+
+            const SizedBox(height: 10),
+
+            // Feature list
+            ...items.map((item) {
+              final isActive = item.status == 1;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      isActive ? Icons.check_circle : Icons.cancel,
+                      size: 16,
+                      color: isActive ? Colors.green : Colors.red.withOpacity(0.6),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item.name ?? '',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: appStore.isDarkMode ? Colors.white : Colors.black87,
+                          decoration: isActive ? null : TextDecoration.lineThrough,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+              );
+            }),
+
+            const SizedBox(height: 12),
+
+            // Selection indicator
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                    size: 20,
+                    color: isSelected ? context.primaryColor : (appStore.isDarkMode ? Colors.white54 : Colors.black38),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isSelected ? 'Selected' : 'Select',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? context.primaryColor : (appStore.isDarkMode ? Colors.white54 : Colors.black38),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1388,7 +1559,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
               return Center(
                 child: InteractiveViewer(
                   child: Image.network(
-                    widget.images[index],
+                    rewriteImageUrl(widget.images[index]),
                     fit: BoxFit.contain,
                     width: MediaQuery.of(context).size.width * 0.95, // bigger
                     height: MediaQuery.of(context).size.height * 0.85,

@@ -1,5 +1,5 @@
 import 'package:booking_system_flutter/model/user_data_model.dart';
-import 'package:booking_system_flutter/screens/auth/sign_in_screen.dart';
+import 'package:booking_system_flutter/screens/auth/phone_entry_screen.dart';
 import 'package:booking_system_flutter/screens/booking/provider_info_screen.dart';
 import 'package:booking_system_flutter/utils/colors.dart';
 import 'package:booking_system_flutter/utils/images.dart';
@@ -134,7 +134,7 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                       if (appStore.isLoggedIn) {
                         onTapFavouriteProvider();
                       } else {
-                        bool? res = await push(SignInScreen(returnExpected: true));
+                        bool? res = await push(PhoneEntryScreen(returnExpected: true));
 
                         if (res ?? false) {
                           onTapFavouriteProvider();

@@ -1,3 +1,5 @@
+import 'package:booking_system_flutter/utils/configs.dart';
+
 const appLogo = 'assets/ic_app_logo.png';
 
 //region NewDashboard
@@ -112,14 +114,18 @@ const ic_right = 'assets/icons/ic_right.png';
 const ic_plus = 'assets/icons/ic_plus.png';
 const ic_wallet_cartoon = 'assets/icons/ic_wallet_cartoon.png';
 
-const car_image = 'assets/images/car.png';
-const bike_image = 'assets/images/bike.png';
-const scooty_image = 'assets/images/scooty.png';
-const bus_image = 'assets/images/bus.png';
-const car_xuv300 = 'assets/images/xuv300.png';
-const car_xuv400 = 'assets/images/xuv400.png';
-const car_xuv500 = 'assets/images/xuv500.png';
+// Server-hosted vehicle & service images (loaded from production domain)
+const _imageBase = 'https://royalblue-nightingale-664281.hostingersite.com/storage/vehicle-images';
+const car_image = '$_imageBase/car.png';
+const bike_image = '$_imageBase/bike.png';
+const scooty_image = '$_imageBase/scooty.png';
+const bus_image = '$_imageBase/bus.png';
+const car_xuv300 = '$_imageBase/xuv300.png';
+const car_xuv400 = '$_imageBase/xuv400.png';
+const car_xuv500 = '$_imageBase/xuv500.png';
+const model1_image = '$_imageBase/model_image1.png';
+const model2_image = '$_imageBase/model_image2.png';
+
+// Local UI assets (not vehicle content)
 const filter_image = 'assets/images/filter.png';
 const vector_image = 'assets/images/Vector.png';
-const model1_image = 'assets/images/model_image1.png';
-const model2_image = 'assets/images/model_image2.png';

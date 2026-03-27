@@ -29,17 +29,31 @@ class SliderDashboardComponent1 extends StatefulWidget {
   _SliderDashboardComponent1State createState() => _SliderDashboardComponent1State();
 }
 
+/// Local fallback images shown when API returns default placeholders.
+const _fallbackSliderImages = [
+  'assets/images/slider_car_wash_1.jpg',
+  'assets/images/slider_car_wash_2.jpg',
+  'assets/images/slider_car_wash_3.jpg',
+  'assets/images/slider_car_wash_4.jpg',
+];
+
 class _SliderDashboardComponent1State extends State<SliderDashboardComponent1> {
   PageController sliderPageController = PageController(initialPage: 0);
   int _currentPage = 0;
   Timer? _timer;
 
+  int get _effectiveCount {
+    final bool useLocal = widget.sliderList.isEmpty ||
+        widget.sliderList.every((s) => _isDefaultImage(s.sliderImage.validate()));
+    return useLocal ? _fallbackSliderImages.length : widget.sliderList.length;
+  }
+
   @override
   void initState() {
     super.initState();
-    if (getBoolAsync(AUTO_SLIDER_STATUS, defaultValue: true) && widget.sliderList.length >= 2) {
+    if (getBoolAsync(AUTO_SLIDER_STATUS, defaultValue: true) && _effectiveCount >= 2) {
       _timer = Timer.periodic(Duration(seconds: DASHBOARD_AUTO_SLIDER_SECOND), (Timer timer) {
-        if (_currentPage < widget.sliderList.length - 1) {
+        if (_currentPage < _effectiveCount - 1) {
           _currentPage++;
         } else {
           _currentPage = 0;
@@ -60,19 +74,51 @@ class _SliderDashboardComponent1State extends State<SliderDashboardComponent1> {
     sliderPageController.dispose();
   }
 
+  /// Returns true if the image URL is a default placeholder.
+  bool _isDefaultImage(String url) {
+    return url.isEmpty || url.contains('default.png') || url.contains('default.jpg');
+  }
+
   Widget getSliderWidget() {
+    // Check if all API slider images are defaults — use local fallbacks instead.
+    final bool useLocalFallback = widget.sliderList.isEmpty ||
+        widget.sliderList.every((s) => _isDefaultImage(s.sliderImage.validate()));
+
+    final int itemCount = useLocalFallback ? _fallbackSliderImages.length : widget.sliderList.length;
+
     return SizedBox(
       height: 300,
       width: context.width(),
       child: Stack(
         children: [
-          widget.sliderList.isNotEmpty
+          itemCount > 0
               ? PageView(
                   controller: sliderPageController,
                   children: List.generate(
-                    widget.sliderList.length,
+                    itemCount,
                     (index) {
+                      if (useLocalFallback) {
+                        return Image.asset(
+                          _fallbackSliderImages[index],
+                          height: 250,
+                          width: context.width(),
+                          fit: BoxFit.cover,
+                        );
+                      }
                       SliderModel data = widget.sliderList[index];
+                      // If this individual image is a default, show a local fallback.
+                      if (_isDefaultImage(data.sliderImage.validate())) {
+                        return Image.asset(
+                          _fallbackSliderImages[index % _fallbackSliderImages.length],
+                          height: 250,
+                          width: context.width(),
+                          fit: BoxFit.cover,
+                        ).onTap(() {
+                          if (data.type == SERVICE) {
+                            ServiceDetailScreen(serviceId: data.typeId.validate().toInt()).launch(context, pageRouteAnimation: PageRouteAnimation.Fade);
+                          }
+                        });
+                      }
                       return CachedImageWidget(url: data.sliderImage.validate(), height: 250, width: context.width(), fit: BoxFit.cover).onTap(() {
                         if (data.type == SERVICE) {
                           ServiceDetailScreen(serviceId: data.typeId.validate().toInt()).launch(context, pageRouteAnimation: PageRouteAnimation.Fade);
@@ -82,13 +128,13 @@ class _SliderDashboardComponent1State extends State<SliderDashboardComponent1> {
                   ),
                 )
               : CachedImageWidget(url: '', height: 250, width: context.width()),
-          if (widget.sliderList.length.validate() > 1)
+          if (itemCount > 1)
             Positioned(
               bottom: 25,
               left: 16,
               child: DotIndicator(
                 pageController: sliderPageController,
-                pages: widget.sliderList,
+                pages: List.generate(itemCount, (_) => _),
                 indicatorColor: primaryColor,
                 unselectedIndicatorColor: white,
                 currentBoxShape: BoxShape.rectangle,

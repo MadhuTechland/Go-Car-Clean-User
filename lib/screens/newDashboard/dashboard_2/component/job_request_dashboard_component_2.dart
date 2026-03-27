@@ -4,7 +4,7 @@ import 'package:nb_utils/nb_utils.dart';
 
 import '../../../../main.dart';
 import '../../../../utils/images.dart';
-import '../../../auth/sign_in_screen.dart';
+import '../../../auth/phone_entry_screen.dart';
 import '../../../jobRequest/my_post_request_list_screen.dart';
 
 class JobRequestDashboardComponent2 extends StatelessWidget {
@@ -54,7 +54,7 @@ class JobRequestDashboardComponent2 extends StatelessWidget {
                 MyPostRequestListScreen().launch(context);
               } else {
                 setStatusBarColor(Colors.white, statusBarIconBrightness: Brightness.dark);
-                bool? res = await SignInScreen(isFromDashboard: true).launch(context);
+                bool? res = await PhoneEntryScreen(isFromDashboard: true).launch(context);
 
                 if (res ?? false) {
                   MyPostRequestListScreen().launch(context);

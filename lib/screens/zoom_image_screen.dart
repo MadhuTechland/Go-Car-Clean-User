@@ -1,4 +1,5 @@
 import 'package:booking_system_flutter/component/back_widget.dart';
+import 'package:booking_system_flutter/component/cached_image_widget.dart';
 import 'package:booking_system_flutter/component/loader_widget.dart';
 import 'package:booking_system_flutter/main.dart';
 import 'package:flutter/material.dart';
@@ -68,7 +69,7 @@ class _ZoomImageScreenState extends State<ZoomImageScreen> {
                 builder: (BuildContext context, int index) {
                   return PhotoViewGalleryPageOptions(
                     imageProvider: Image.network(
-                      widget.galleryImages![index],
+                      rewriteImageUrl(widget.galleryImages![index]),
                       errorBuilder: (context, error, stackTrace) => PlaceHolderWidget(),
                     ).image,
                     initialScale: PhotoViewComputedScale.contained,

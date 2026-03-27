@@ -2,9 +2,9 @@ import 'package:booking_system_flutter/utils/configs.dart';
 import 'package:flutter/material.dart';
 
 var primaryColor = defaultPrimaryColor;
-const secondaryPrimaryColor = Color(0xfff3f4fa);
-const lightPrimaryColor = Color(0xffebebf7);
-const primaryLightColor = Color(0xFFEFEFF8);
+const secondaryPrimaryColor = Color(0xFFE8EEF4);
+const lightPrimaryColor = Color(0xFFD1DEE9);
+const primaryLightColor = Color(0xFFF0F4F8);
 
 //Text Color
 const appTextPrimaryColor = Color(0xff1C1F34);
@@ -46,6 +46,38 @@ const defaultActivityStatus = Color(0xFF3CAE5C);
 
 const walletCardColor = Color(0xFF1C1E33);
 const showRedForZeroRatingColor = Color(0xFFFA6565);
+
+// Premium Dark Theme Colors
+const darkSurface = Color(0xFF0E1A26);
+const darkSurfaceVariant = Color(0xFF152636);
+const darkBorderGlow = Color(0xFF1B3A5C);
+const quickActionCardBg = Color(0xFF12202F);
+const quickActionCardBorder = Color(0xFF1B3A5C);
+const categoryGlowBg = Color(0xFF0F1E2E);
+const darkBottomNavBg = Color(0xFF0A1520);
+const greetingTextColor = Color(0xFFB0C4D8);
+
+// App Bar Gradient
+const appBarGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [
+    Color(0xFF0F2236),
+    Color(0xFF1B3A5C),
+    Color(0xFF2A5080),
+  ],
+  stops: [0.0, 0.5, 1.0],
+);
+
+const appBarGradientLight = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [
+    Color(0xFF142E48),
+    Color(0xFF1B3A5C),
+    Color(0xFF244B6E),
+  ],
+);
 
 //Dashboard 3
 const jobRequestComponentColor = Color(0xFFE4BB97);

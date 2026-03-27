@@ -110,7 +110,9 @@ class _CustomAppbarDashboardComponent2State extends State<CustomAppbarDashboardC
   Widget build(BuildContext context) {
     return Container(
       width: context.width(),
-      decoration: boxDecorationDefault(color: primaryColor),
+      decoration: BoxDecoration(
+        gradient: appStore.isDarkMode ? appBarGradient : appBarGradientLight,
+      ),
       padding: EdgeInsets.only(top: 16, left: 16, right: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

@@ -112,8 +112,13 @@ class AppTheme {
           shape: dialogShape(),
         ),
         navigationBarTheme: NavigationBarThemeData(
-            labelTextStyle: WidgetStateProperty.all(
-                primaryTextStyle(size: 10, color: Colors.white))),
+            backgroundColor: darkBottomNavBg,
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return primaryTextStyle(size: 10, color: color ?? primaryColor);
+              }
+              return primaryTextStyle(size: 10, color: Colors.white54);
+            })),
       ).copyWith(
         pageTransitionsTheme: PageTransitionsTheme(
           builders: <TargetPlatform, PageTransitionsBuilder>{
