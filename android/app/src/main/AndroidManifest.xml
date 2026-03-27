@@ -15,8 +15,9 @@
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="Go Car Clean"
+        android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true"
-        tools:replace="android:label">
+        tools:replace="android:label,android:usesCleartextTraffic">
         <meta-data
                 android:name="com.google.firebase.messaging.default_notification_icon"
                 android:resource="@drawable/ic_stat_ic_notification" />

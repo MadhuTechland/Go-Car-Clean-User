@@ -115,7 +115,9 @@ class _AppBarDashboardComponent4State extends State<AppBarDashboardComponent4> {
         Container(
           width: context.width(),
           height: context.height() * 0.18,
-          decoration: boxDecorationDefault(color: primaryColor),
+          decoration: BoxDecoration(
+            gradient: appStore.isDarkMode ? appBarGradient : appBarGradientLight,
+          ),
           padding: EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

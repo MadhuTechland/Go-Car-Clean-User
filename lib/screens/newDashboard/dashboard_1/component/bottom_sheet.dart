@@ -47,12 +47,12 @@ class WashTypeBottomSheet {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: selectedType == "instant"
-                                  ? const Color(0xFFCAE8FF)
+                                  ? const Color(0xFFE0E7FF)
                                   : Colors.black,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: selectedType == "instant"
-                                    ? Colors.blue
+                                    ? primaryColor
                                     : Colors.grey.shade700,
                                 width: 2,
                               ),
@@ -102,12 +102,12 @@ class WashTypeBottomSheet {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: selectedType == "daily"
-                                  ? const Color(0xFFCAE8FF)
+                                  ? const Color(0xFFE0E7FF)
                                   : Colors.black,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: selectedType == "daily"
-                                    ? Colors.blue
+                                    ? primaryColor
                                     : Colors.grey.shade700,
                                 width: 2,
                               ),

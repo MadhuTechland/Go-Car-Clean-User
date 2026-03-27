@@ -1,3 +1,4 @@
+import 'package:booking_system_flutter/component/cached_image_widget.dart';
 import 'package:booking_system_flutter/screens/booking/handyman_info_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:nb_utils/nb_utils.dart';
@@ -38,7 +39,7 @@ class HandymanStaffMembersComponent extends StatelessWidget {
                     Container(
                       child: ClipOval(
                         child: Image.network(
-                          handyman.profileImage.validate(),
+                          rewriteImageUrl(handyman.profileImage.validate()),
                           fit: BoxFit.cover,
                           height: 35,
                           width: 35,

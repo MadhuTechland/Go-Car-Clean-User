@@ -5,46 +5,35 @@ import 'package:booking_system_flutter/model/category_model.dart';
 import 'package:booking_system_flutter/model/dashboard_model.dart';
 import 'package:booking_system_flutter/model/service_data_model.dart';
 import 'package:booking_system_flutter/network/rest_apis.dart';
-import 'package:booking_system_flutter/screens/dashboard/component/category_component.dart';
-import 'package:booking_system_flutter/screens/dashboard/component/category_component_instance.dart';
-import 'package:booking_system_flutter/screens/filter/filter_screen.dart';
 import 'package:booking_system_flutter/screens/service/component/service_component.dart';
-import 'package:booking_system_flutter/store/filter_store.dart';
-import 'package:booking_system_flutter/utils/common.dart';
-import 'package:booking_system_flutter/utils/images.dart';
-import 'package:booking_system_flutter/utils/string_extensions.dart';
-import 'package:flutter/material.dart';
-import 'package:nb_utils/nb_utils.dart';
+import 'package:booking_system_flutter/utils/colors.dart';
 import 'package:booking_system_flutter/utils/constant.dart';
-import 'view_instant_carwash.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:nb_utils/nb_utils.dart';
 
 class InstantWashScreen extends StatefulWidget {
-  const InstantWashScreen({super.key});
+  final String bookingType;
+
+  const InstantWashScreen({super.key, this.bookingType = "instance"});
 
   @override
   State<InstantWashScreen> createState() => _InstantWashScreenState();
 }
 
 class _InstantWashScreenState extends State<InstantWashScreen> {
-  TextEditingController searchCont = TextEditingController();
-  FocusNode myFocusNode = FocusNode();
   Future<DashboardResponse>? future;
   CategoryData? selectedCategory;
+  CategoryData? selectedSubcategory;
   Future<List<CategoryData>>? futureSubcategories;
-  ServiceData dummyService = ServiceData(
-    id: 14,
-    name: "Dummy Service",
-    description: "This is a placeholder service for demo",
-    // add other required fields if your model enforces them
-  );
-  int page = 1;
-  bool isLastPage = false;
-  
+  Future<List<ServiceData>>? futureServices;
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    filterStore = FilterStore();
     init();
   }
 
@@ -58,37 +47,69 @@ class _InstantWashScreenState extends State<InstantWashScreen> {
   }
 
   void loadSubcategories(int catId) {
+    selectedSubcategory = null;
+    futureServices = null;
+    _searchController.clear();
+    _searchQuery = '';
     futureSubcategories = getSubCategoryListAPI(catId: catId);
     setState(() {});
   }
 
-  void fetchAllServiceData() {
-    searchServiceAPI(
-      page: page,
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void loadServices(CategoryData subCat, {String search = ''}) {
+    selectedSubcategory = subCat;
+    futureServices = searchServiceAPI(
+      categoryId: selectedCategory!.id.toString(),
+      subCategory: subCat.id.toString(),
+      search: search,
       list: [],
-      categoryId: selectedCategory != null ? selectedCategory!.id.toString() : filterStore.categoryId.join(','),
-      subCategory: '',
-      providerId: filterStore.providerId.join(","),
-      isPriceMin: filterStore.isPriceMin,
-      isPriceMax: filterStore.isPriceMax,
-      ratingId: filterStore.ratingId.join(','),
-      search: searchCont.text,
-      latitude: appStore.isCurrentLocation ? getDoubleAsync(LATITUDE).toString() : "",
-      longitude: appStore.isCurrentLocation ? getDoubleAsync(LONGITUDE).toString() : "",
-      lastPageCallBack: (p0) {
-        isLastPage = p0;
-      },
-      isFeatured: '',
     );
+    setState(() {});
+  }
+
+  bool get isDaily => widget.bookingType == "daily";
+
+  Color _getCategoryAccentColor(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('car')) return const Color(0xFF1B3A5C);
+    if (lower.contains('bike')) return const Color(0xFFEC4899);
+    if (lower.contains('scooty') || lower.contains('scooter')) return const Color(0xFF10B981);
+    if (lower.contains('bus') || lower.contains('van') || lower.contains('truck')) return const Color(0xFFF59E0B);
+    return primaryColor;
+  }
+
+  IconData _getCategoryIcon(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('car')) return Icons.directions_car_rounded;
+    if (lower.contains('bike')) return Icons.two_wheeler_rounded;
+    if (lower.contains('scooty') || lower.contains('scooter')) return Icons.electric_scooter_rounded;
+    if (lower.contains('bus') || lower.contains('van') || lower.contains('truck')) return Icons.directions_bus_rounded;
+    return Icons.local_car_wash_rounded;
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = appStore.isDarkMode;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Instant Car Wash")),
+      backgroundColor: isDark ? darkSurface : const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Text(
+          isDaily ? 'Daily Wash' : 'Instant Wash',
+          style: boldTextStyle(size: 18, color: Colors.white),
+        ),
+        backgroundColor: primaryColor,
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+      ),
       body: SnapHelperWidget<DashboardResponse>(
         future: future,
-        loadingWidget: Loader(),
+        loadingWidget: const Loader(),
         errorBuilder: (error) => NoDataWidget(
           title: error,
           imageWidget: ErrorStateWidget(),
@@ -99,235 +120,410 @@ class _InstantWashScreenState extends State<InstantWashScreen> {
           },
         ),
         onSuccess: (snap) {
-          return Column(children: [
-            // Container(
-            //   padding: const EdgeInsets.all(16),
-            //   child: Row(
-            //     children: [
-            //       AppTextField(
-            //         textFieldType: TextFieldType.OTHER,
-            //         focus: myFocusNode,
-            //         controller: searchCont,
-            //         suffix: CloseButton(
-            //           onPressed: () {
-            //             searchCont.clear();
-            //             setState(() {});
-            //           },
-            //         ).visible(searchCont.text.isNotEmpty),
-            //         onFieldSubmitted: (s) {
-            //           setState(() {});
-            //         },
-            //         decoration: InputDecoration(
-            //           hintText: "Search Here...",
-            //           filled: true,
-            //           fillColor: appStore.isDarkMode
-            //               ? Colors.black54
-            //               : Colors.grey.shade200,
-            //           border: OutlineInputBorder(
-            //             borderRadius: radius(12),
-            //             borderSide: BorderSide.none,
-            //           ),
-            //           hintStyle: secondaryTextStyle(color: Colors.grey),
-            //           prefixIcon: Icon(
-            //             Icons.search,
-            //             color: appStore.isDarkMode
-            //                 ? Colors.white54
-            //                 : Colors.black54,
-            //           ),
-            //         ),
-            //       ).expand(),
-            //       12.width,
-            //       Container(
-            //         padding: const EdgeInsets.all(10),
-            //         decoration:
-            //             boxDecorationDefault(color: context.primaryColor),
-            //         child: Image.asset(
-            //           filter_image,
-            //           height: 24,
-            //           width: 24,
-            //           color: appStore.isDarkMode ? Colors.white : Colors.black,
-            //         ),
-            //       ).onTap(() {
-            //         toast("Filter clicked");
-            //       }),
-            //     ],
-            //   ),
-            // ),
+          return Column(
+            children: [
+              // Step indicator + Vehicle selector
+              _buildVehicleSelector(snap.category.validate(), isDark),
 
-            Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    AppTextField(
-                      textFieldType: TextFieldType.OTHER,
-                      focus: myFocusNode,
-                      controller: searchCont,
-                      suffix: CloseButton(
-                        onPressed: () {
-                          page = 1;
-                          searchCont.clear();
-                          filterStore.setSearch('');
-                          appStore.setLoading(true);
-                          fetchAllServiceData();
-                          setState(() {});
-                        },
-                      ).visible(searchCont.text.isNotEmpty),
-                      onFieldSubmitted: (s) {
-                        page = 1;
-                        filterStore.setSearch(s);
-                        appStore.setLoading(true);
-                        fetchAllServiceData();
-                        setState(() {});
-                      },
-                      decoration: inputDecoration(context).copyWith(
-                        hintText: "${language.lblSearchFor} ${language.allServices}",
-                        prefixIcon: ic_search.iconImage(size: 10).paddingAll(14),
-                        hintStyle: secondaryTextStyle(),
-                      ),
-                    ).expand(),
-                    16.width,
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: boxDecorationDefault(color: context.primaryColor),
-                      child: CachedImageWidget(
-                        url: ic_filter,
-                        height: 26,
-                        width: 26,
-                        color: Colors.white,
-                      ),
-                    ).onTap(() {
-                      hideKeyboard(context);
-                      FilterScreen(isFromProvider: true, isFromCategory: false).launch(context).then((value) {
-                        if (value != null) {
-                          page = 1;
-                          appStore.setLoading(true);
-                          fetchAllServiceData();
-                          setState(() {});
-                        }
-                      });
-                    }, borderRadius: radius()),
-                  ],
+              // Content area
+              Expanded(
+                child: selectedCategory == null
+                    ? _buildEmptyState(isDark)
+                    : _buildSubcategoryAndServices(isDark),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildVehicleSelector(List<CategoryData> categories, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(
+        color: isDark ? darkSurfaceVariant : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              8.width,
+              Text(
+                'Select Your Vehicle',
+                style: boldTextStyle(size: 15, color: isDark ? Colors.white : Colors.black87),
+              ),
+            ],
+          ),
+          12.height,
+          SizedBox(
+            height: 80,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: categories.length,
+              separatorBuilder: (_, __) => 12.width,
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                final isSelected = selectedCategory?.id == cat.id;
+                final accentColor = _getCategoryAccentColor(cat.name.validate());
+                final icon = _getCategoryIcon(cat.name.validate());
+                final bool isSvg = cat.categoryImage.validate().endsWith('.svg');
 
-            // / Categories
-            CategoryComponentInstance(
-              categoryList: snap.category.validate(),
-              onCategorySelected: (cat) {
-                setState(() {
-                  selectedCategory = cat;
-                });
-                loadSubcategories(cat.id.validate());
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => selectedCategory = cat);
+                    loadSubcategories(cat.id.validate());
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 90,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? accentColor.withValues(alpha: isDark ? 0.2 : 0.1)
+                          : isDark
+                              ? quickActionCardBg
+                              : const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSelected
+                            ? accentColor
+                            : isDark
+                                ? quickActionCardBorder
+                                : Colors.grey.shade300,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (cat.categoryImage.validate().isNotEmpty && isSvg)
+                          SvgPicture.network(
+                            cat.categoryImage.validate(),
+                            height: 28,
+                            width: 28,
+                            colorFilter: ColorFilter.mode(
+                              isSelected ? accentColor : (isDark ? Colors.white60 : Colors.grey.shade600),
+                              BlendMode.srcIn,
+                            ),
+                            placeholderBuilder: (_) => Icon(icon, size: 28, color: isSelected ? accentColor : (isDark ? Colors.white60 : Colors.grey.shade600)),
+                          )
+                        else if (cat.categoryImage.validate().isNotEmpty)
+                          CachedImageWidget(
+                            url: cat.categoryImage.validate(),
+                            height: 28,
+                            width: 28,
+                            fit: BoxFit.contain,
+                          )
+                        else
+                          Icon(
+                            icon,
+                            size: 28,
+                            color: isSelected ? accentColor : (isDark ? Colors.white60 : Colors.grey.shade600),
+                          ),
+                        8.height,
+                        Text(
+                          cat.name.validate(),
+                          style: boldTextStyle(
+                            size: 12,
+                            color: isSelected
+                                ? accentColor
+                                : isDark
+                                    ? Colors.white70
+                                    : Colors.grey.shade700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               },
             ),
-            16.height,
+          ),
+        ],
+      ),
+    );
+  }
 
-            if (selectedCategory != null)
-              Expanded(
-                child: SnapHelperWidget<List<CategoryData>>(
-                  future: futureSubcategories,
-                  loadingWidget: Loader(),
-                  onSuccess: (subCats) {
-                    if (subCats.isEmpty)
-                      return Center(child: Text("No Subcategories"));
+  Widget _buildEmptyState(bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: isDark ? 0.15 : 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.local_car_wash_rounded,
+              size: 48,
+              color: primaryColor.withValues(alpha: 0.6),
+            ),
+          ),
+          20.height,
+          Text(
+            'Choose a vehicle type above',
+            style: boldTextStyle(size: 16, color: isDark ? Colors.white70 : Colors.black54),
+          ),
+          8.height,
+          Text(
+            isDaily ? 'to explore daily wash plans' : 'to explore instant wash services',
+            style: secondaryTextStyle(size: 13),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    return DefaultTabController(
-                      length: subCats.length,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Models",
-                                  style: boldTextStyle(
-                                      color: appStore.isDarkMode
-                                          ? Colors.white
-                                          : Colors.black,
-                                      size: 18))
-                              .paddingSymmetric(horizontal: 16),
-                          12.height,
+  Widget _buildSubcategoryAndServices(bool isDark) {
+    return SnapHelperWidget<List<CategoryData>>(
+      future: futureSubcategories,
+      loadingWidget: const Loader(),
+      onSuccess: (subCats) {
+        if (subCats.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.info_outline_rounded, size: 40, color: Colors.grey.shade400),
+                12.height,
+                Text('No models available', style: secondaryTextStyle(size: 14)),
+              ],
+            ),
+          );
+        }
 
-                          /// 🔹 Dynamic Tabs
-                          TabBar(
-                            isScrollable: true,
-                            indicatorColor: Colors.yellow,
-                            indicatorWeight: 4,
-                            labelColor: appStore.isDarkMode
+        // Auto-select first subcategory if none selected
+        if (selectedSubcategory == null && subCats.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (selectedSubcategory == null) {
+              loadServices(subCats.first);
+            }
+          });
+        }
+
+        // Filter subcategories based on search query
+        final filteredSubCats = _searchQuery.isEmpty
+            ? subCats
+            : subCats.where((s) => s.name.validate().toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? quickActionCardBg : Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? quickActionCardBorder : Colors.grey.shade200,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value);
+                    // Also reload services with search query when a subcategory is selected
+                    if (selectedSubcategory != null) {
+                      loadServices(selectedSubcategory!, search: value.trim());
+                    }
+                  },
+                  style: primaryTextStyle(size: 14, color: isDark ? Colors.white : Colors.black87),
+                  decoration: InputDecoration(
+                    hintText: 'Search brand or model...',
+                    hintStyle: secondaryTextStyle(size: 14, color: isDark ? Colors.white38 : Colors.grey.shade400),
+                    prefixIcon: Icon(Icons.search_rounded, size: 20, color: isDark ? Colors.white38 : Colors.grey.shade400),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? GestureDetector(
+                            onTap: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                              if (selectedSubcategory != null) {
+                                loadServices(selectedSubcategory!);
+                              }
+                            },
+                            child: Icon(Icons.close_rounded, size: 18, color: isDark ? Colors.white38 : Colors.grey.shade400),
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+              ),
+            ),
+
+            // Subcategory header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: primaryColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  8.width,
+                  Text(
+                    'Select Model',
+                    style: boldTextStyle(size: 15, color: isDark ? Colors.white : Colors.black87),
+                  ),
+                  const Spacer(),
+                  if (_searchQuery.isNotEmpty)
+                    Text(
+                      '${filteredSubCats.length} found',
+                      style: secondaryTextStyle(size: 12, color: primaryColor),
+                    ),
+                ],
+              ),
+            ),
+            12.height,
+
+            // Subcategory chips
+            if (filteredSubCats.isNotEmpty)
+              SizedBox(
+                height: 38,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filteredSubCats.length,
+                  separatorBuilder: (_, __) => 8.width,
+                  itemBuilder: (_, index) {
+                    final sub = filteredSubCats[index];
+                    final isSelected = selectedSubcategory?.id == sub.id;
+
+                    return GestureDetector(
+                      onTap: () => loadServices(sub),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? primaryColor
+                              : isDark
+                                  ? quickActionCardBg
+                                  : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected
+                                ? primaryColor
+                                : isDark
+                                    ? quickActionCardBorder
+                                    : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Text(
+                          sub.name.validate(),
+                          style: boldTextStyle(
+                            size: 13,
+                            color: isSelected
                                 ? Colors.white
-                                : Colors.black,
-                            unselectedLabelColor: appStore.isDarkMode
-                                ? Colors.white54
-                                : Colors.black54,
-                            labelStyle: boldTextStyle(size: 16),
-                            unselectedLabelStyle: secondaryTextStyle(size: 14),
-                            tabs: subCats
-                                .map((sub) => Tab(text: sub.name.validate()))
-                                .toList(),
+                                : isDark
+                                    ? Colors.white70
+                                    : Colors.grey.shade700,
                           ),
-
-                          /// 🔹 Dynamic Tab Views
-                          Expanded(
-                            child: TabBarView(
-                              children: subCats.map((sub) {
-                                return FutureBuilder<List<ServiceData>>(
-                                  future: searchServiceAPI(
-                                    categoryId: selectedCategory!.id.toString(),
-                                    subCategory: sub.id.toString(),
-                                    list: [],
-                                  ),
-                                  builder: (context, snap) {
-                                    if (snap.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return Loader();
-                                    }
-                                    if (snap.hasError) {
-                                      return Center(
-                                          child: Text("Error: ${snap.error}"));
-                                    }
-                                    if (snap.data!.isEmpty) {
-                                      return Center(
-                                          child: Text("No services found"));
-                                    }
-
-                                    return ListView.builder(
-                                      padding: const EdgeInsets.all(16),
-                                      itemCount: snap.data!.length,
-                                      itemBuilder: (_, index) {
-                                        return ServiceComponent(
-                                          serviceData: snap.data![index],
-                                          isFromViewAllService: true,
-                                          bookingType: "instance",
-                                        ).paddingBottom(12);
-                                      },
-                                    );
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     );
                   },
                 ),
               )
             else
-
-              /// 👇 Show message + image if no category is selected
-              Expanded(
-                child: Center(
-                  child: NoDataWidget(
-                    title: "Select a category to book the service",
-                    imageWidget: ErrorStateWidget(),
-                    retryText: language.reload,
-                    onRetry: () {
-                      appStore.setLoading(true);
-                      init();
-                    },
-                  ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'No models match "$_searchQuery"',
+                  style: secondaryTextStyle(size: 13, color: isDark ? Colors.white54 : Colors.grey.shade500),
                 ),
               ),
-          ]);
-        },
-      ),
+            16.height,
+
+            // Services list
+            Expanded(
+              child: futureServices == null
+                  ? const SizedBox()
+                  : FutureBuilder<List<ServiceData>>(
+                      future: futureServices,
+                      builder: (context, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return const Loader();
+                        }
+                        if (snap.hasError) {
+                          return Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.error_outline, size: 36, color: Colors.red.shade300),
+                                8.height,
+                                Text('Something went wrong', style: secondaryTextStyle()),
+                              ],
+                            ),
+                          );
+                        }
+                        if (!snap.hasData || snap.data!.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.search_off_rounded, size: 40, color: Colors.grey.shade400),
+                                12.height,
+                                Text('No services available', style: boldTextStyle(size: 14, color: Colors.grey)),
+                                4.height,
+                                Text('Try selecting a different model', style: secondaryTextStyle(size: 12)),
+                              ],
+                            ),
+                          );
+                        }
+
+                        return ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          itemCount: snap.data!.length,
+                          itemBuilder: (_, index) {
+                            return ServiceComponent(
+                              serviceData: snap.data![index],
+                              isFromViewAllService: true,
+                              bookingType: widget.bookingType,
+                            ).paddingBottom(12);
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

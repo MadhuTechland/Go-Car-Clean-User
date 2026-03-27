@@ -334,3 +334,8 @@ const HANDYMAN = 'handyman';
 const BOOKING_STATUS = 'booking_status';
 const PAYMENT_TYPE = 'payment_type';
 const PAYMENT_STATUS = 'payment_status';
+
+//region OTP Config
+const OTP_EXPIRY_MINUTES = 5;
+const OTP_RESEND_SECONDS = 30;
+//endregion

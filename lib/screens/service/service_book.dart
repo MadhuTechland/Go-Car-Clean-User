@@ -1,4 +1,6 @@
+import 'package:booking_system_flutter/component/cached_image_widget.dart';
 import 'package:booking_system_flutter/main.dart';
+import 'package:booking_system_flutter/utils/colors.dart';
 import 'package:booking_system_flutter/utils/images.dart';
 import 'package:flutter/material.dart';
 import 'package:nb_utils/nb_utils.dart';
@@ -46,8 +48,8 @@ class ServiceBookScreen extends StatelessWidget {
                   Spacer(),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      car_xuv300,
+                    child: CachedImageWidget(
+                      url: car_xuv300,
                       width: 100,
                       height: 80,
                       fit: BoxFit.cover,
@@ -268,7 +270,7 @@ class ServiceBookScreen extends StatelessWidget {
                           width: double.infinity,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
+                              backgroundColor: context.primaryColor,
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -527,7 +529,7 @@ class ServiceBookScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: context.primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12))),
@@ -664,7 +666,7 @@ class ServiceBookScreen extends StatelessWidget {
                           : couponCode != null
                               ? Colors.green
                               : isTotal
-                                  ? Colors.blue
+                                  ? primaryColor
                                   : null,
                 ),
               ),
@@ -695,8 +697,8 @@ class ServiceBookScreen extends StatelessWidget {
           /// 🔹 Image
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              imagePath,
+            child: CachedImageWidget(
+              url: imagePath,
               width: 40,
               height: 40,
               fit: BoxFit.cover,
@@ -724,8 +726,8 @@ class ServiceBookScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(),
-            child: const Icon(Icons.check_box_rounded,
-                color: Colors.blue, size: 20),
+            child: Icon(Icons.check_box_rounded,
+                color: primaryColor, size: 20),
           ),
         ],
       ),

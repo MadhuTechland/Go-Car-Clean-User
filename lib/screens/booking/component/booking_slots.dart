@@ -73,13 +73,15 @@ class _BookingSlotsComponentState extends State<BookingSlotsComponent> {
     if (isUpdate) {
       selectedHorizontalDate = DateTime.parse(widget.bookingData!.date.validate().toString());
 
-      SlotData tempSlot = slotsList.firstWhere((element) => element.day.validate().toLowerCase() == selectedHorizontalDate.weekday.weekDayName.validate().toLowerCase());
+      final dayName = selectedHorizontalDate.weekday.weekDayName.validate().toLowerCase();
+      final matchingSlots = slotsList.where((element) => element.day.validate().toLowerCase() == dayName);
 
-      if (!tempSlot.slot.validate().contains(widget.bookingData!.bookingSlot.validate())) {
-        slotsList
-            .firstWhere((element) => element.day.validate().toLowerCase() == selectedHorizontalDate.weekday.weekDayName.validate().toLowerCase())
-            .slot!
-            .add(widget.bookingData!.bookingSlot.validate());
+      if (matchingSlots.isNotEmpty) {
+        SlotData tempSlot = matchingSlots.first;
+        if (!tempSlot.slot.validate().contains(widget.bookingData!.bookingSlot.validate())) {
+          tempSlot.slot ??= [];
+          tempSlot.slot!.add(widget.bookingData!.bookingSlot.validate());
+        }
       }
     }
   }

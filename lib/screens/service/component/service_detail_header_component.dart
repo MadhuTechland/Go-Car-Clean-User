@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:booking_system_flutter/component/cached_image_widget.dart';
 import 'package:booking_system_flutter/main.dart';
 import 'package:booking_system_flutter/model/service_data_model.dart';
-import 'package:booking_system_flutter/screens/auth/sign_in_screen.dart';
+import 'package:booking_system_flutter/screens/auth/phone_entry_screen.dart';
 import 'package:booking_system_flutter/utils/colors.dart';
 import 'package:booking_system_flutter/utils/common.dart';
 import 'package:booking_system_flutter/utils/images.dart';
@@ -80,10 +80,23 @@ class _ServiceDetailHeaderComponentState extends State<ServiceDetailHeaderCompon
     super.dispose();
   }
 
+  String _getFallbackImage() {
+    final catName = widget.serviceDetail.categoryName.validate().toLowerCase();
+    if (catName.contains('car')) return car_image;
+    if (catName.contains('bike')) return bike_image;
+    if (catName.contains('scooty')) return scooty_image;
+    if (catName.contains('bus') || catName.contains('van') || catName.contains('truck')) return bus_image;
+    return car_image;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final attachments = widget.serviceDetail.attachments.validate();
-    final hasMultipleImages = attachments.isNotEmpty && attachments.length > 1;
+    List<String> attachments = widget.serviceDetail.attachments.validate();
+    // If no attachments, use a category-based fallback image
+    if (attachments.isEmpty) {
+      attachments = [_getFallbackImage()];
+    }
+    final hasMultipleImages = attachments.length > 1;
 
     return SizedBox(
       height: 250,
@@ -91,38 +104,37 @@ class _ServiceDetailHeaderComponentState extends State<ServiceDetailHeaderCompon
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          if (attachments.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-              child: SizedBox(
-                height: 250,
-                width: context.width(),
-                child: hasMultipleImages
-                    ? PageView.builder(
-                        controller: _pageController,
-                        itemCount: attachments.length,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentPage = index;
-                          });
-                        },
-                        itemBuilder: (context, index) {
-                          return CachedImageWidget(
-                            radius: defaultRadius,
-                            url: attachments[index],
-                            fit: BoxFit.cover,
-                            height: 350,
-                          );
-                        },
-                      )
-                    : CachedImageWidget(
-                        radius: defaultRadius,
-                        url: attachments.first,
-                        fit: BoxFit.cover,
-                        height: 350,
-                      ),
-              ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+            child: SizedBox(
+              height: 250,
+              width: context.width(),
+              child: hasMultipleImages
+                  ? PageView.builder(
+                      controller: _pageController,
+                      itemCount: attachments.length,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        return CachedImageWidget(
+                          radius: defaultRadius,
+                          url: attachments[index],
+                          fit: BoxFit.cover,
+                          height: 350,
+                        );
+                      },
+                    )
+                  : CachedImageWidget(
+                      radius: defaultRadius,
+                      url: attachments.first,
+                      fit: BoxFit.cover,
+                      height: 350,
+                    ),
             ),
+          ),
           if (hasMultipleImages)
             Positioned(
               bottom: 20,
@@ -165,7 +177,7 @@ class _ServiceDetailHeaderComponentState extends State<ServiceDetailHeaderCompon
               if (appStore.isLoggedIn) {
                 onTapFavourite();
               } else {
-                push(SignInScreen(returnExpected: true)).then((value) {
+                push(PhoneEntryScreen(returnExpected: true)).then((value) {
                   setStatusBarColor(transparentColor, delayInMilliSeconds: 1000);
                   if (value) {
                     onTapFavourite();

@@ -1,8 +1,22 @@
 import 'dart:io';
 
+import 'package:booking_system_flutter/utils/configs.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:nb_utils/nb_utils.dart';
+
+/// Rewrites API image URLs to point to the live image server.
+/// Handles URLs like http://127.0.0.1:8000/... or http://192.168.x.x:8000/...
+String rewriteImageUrl(String url) {
+  if (url.isEmpty) return url;
+  final uri = Uri.tryParse(url);
+  if (uri == null) return url;
+  final host = uri.host;
+  if (host == '127.0.0.1' || host == 'localhost' || host.startsWith('192.168.')) {
+    return url.replaceFirst(RegExp(r'https?://[^/]+'), IMAGE_BASE_URL);
+  }
+  return url;
+}
 
 class CachedImageWidget extends StatelessWidget {
   final String url;
@@ -53,6 +67,7 @@ class CachedImageWidget extends StatelessWidget {
         ),
       ).cornerRadiusWithClipRRect(radius ?? (circle ? (height / 2) : 0));
     } else if (url.validate().startsWith('http')) {
+      final imageUrl = rewriteImageUrl(url);
       return CachedNetworkImage(
         placeholder: (_, __) {
           return Stack(
@@ -66,7 +81,7 @@ class CachedImageWidget extends StatelessWidget {
             ],
           );
         },
-        imageUrl: url,
+        imageUrl: imageUrl,
         height: height,
         width: width ?? height,
         fit: fit,

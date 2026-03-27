@@ -1,5 +1,5 @@
 import 'package:booking_system_flutter/main.dart';
-import 'package:booking_system_flutter/screens/auth/sign_in_screen.dart';
+import 'package:booking_system_flutter/screens/auth/phone_entry_screen.dart';
 import 'package:booking_system_flutter/screens/dashboard/customer_rating_screen.dart';
 import 'package:booking_system_flutter/screens/dashboard/dashboard_screen.dart';
 import 'package:booking_system_flutter/utils/colors.dart';
@@ -31,7 +31,7 @@ class CustomerRatingsComponent extends StatelessWidget {
               } else {
                 setStatusBarColor(Colors.white, statusBarIconBrightness: Brightness.dark);
 
-                SignInScreen().launch(context).then((value) {
+                PhoneEntryScreen().launch(context).then((value) {
                   setStatusBarColor(transparentColor, delayInMilliSeconds: 1000);
                   if (value ?? false) {
                     DashboardScreen().launch(context, isNewTask: true, pageRouteAnimation: PageRouteAnimation.Fade);

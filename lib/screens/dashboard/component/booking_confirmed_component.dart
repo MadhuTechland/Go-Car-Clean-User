@@ -33,7 +33,11 @@ class _PendingBookingComponentState extends State<PendingBookingComponent> {
     return Container(
       margin: EdgeInsets.all(16),
       padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 26),
-      decoration: boxDecorationRoundedWithShadow(defaultRadius.toInt(), backgroundColor: primaryColor),
+      decoration: BoxDecoration(
+        gradient: appStore.isDarkMode ? appBarGradient : appBarGradientLight,
+        borderRadius: BorderRadius.circular(defaultRadius),
+        boxShadow: defaultBoxShadow(),
+      ),
       child: Column(
         children: [
           Row(

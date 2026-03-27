@@ -3,16 +3,16 @@ import 'package:booking_system_flutter/utils/configs.dart';
 
 class LanguageEn extends BaseLanguage {
   @override
-  String get walkTitle1 => 'Welcome To Gocarclean';
+  String get walkTitle1 => 'Your Car, Spotless';
 
   @override
-  String get walkTitle2 => 'Find Your Service';
+  String get walkTitle2 => 'Pick Your Service';
 
   @override
-  String get walkTitle3 => 'Book The Appointment';
+  String get walkTitle3 => 'Book in a Tap';
 
   @override
-  String get walkTitle4 => 'Payment Gateway';
+  String get walkTitle4 => 'Pay Securely';
 
   @override
   String get getStarted => 'Get Started';
@@ -240,16 +240,16 @@ class LanguageEn extends BaseLanguage {
   String get btnSubmit => "Submit";
 
   @override
-  String get walkThrough1 => 'Sign up or log in to your account using your email or social media profiles. Completing your profile ensures a seamless booking experience.';
+  String get walkThrough1 => 'Premium car cleaning delivered to your doorstep. Sit back, relax, and let us make your ride shine like new.';
 
   @override
-  String get walkThrough2 => 'Find your service as per your preferences.';
+  String get walkThrough2 => 'From quick washes to full detailing \u2014 browse and choose the perfect service for your vehicle.';
 
   @override
-  String get walkThrough3 => 'Book your services on your own time.';
+  String get walkThrough3 => 'Schedule at your convenience. Pick the date, time, and location that works best for you.';
 
   @override
-  String get walkThrough4 => 'Choose the preferable options of payment and get best service.';
+  String get walkThrough4 => 'Multiple payment options at your fingertips. Quick, safe, and hassle-free checkout every time.';
 
   @override
   String get lblNotification => "Notifications";
@@ -900,10 +900,10 @@ class LanguageEn extends BaseLanguage {
   String get pleaseEnterValidOTP => 'Please enter Valid OTP';
 
   @override
-  String get confirmOTP => 'تأكيد كلمة المرور لمرة واحدة';
+  String get confirmOTP => 'Confirm OTP';
 
   @override
-  String get sendingOTP => 'إرسال كلمة المرور لمرة واحدة';
+  String get sendingOTP => 'Sending OTP';
 
   @override
   String get pleaseSelectDifferentSlotThenPrevious => 'Please select different slot then previous';

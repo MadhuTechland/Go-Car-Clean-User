@@ -138,23 +138,23 @@ class _BookingConfirmationDialogState extends State<BookingConfirmationDialog> {
                   children: [
                     AppButton(
                       padding: EdgeInsets.zero,
-                      text: language.goToHome,
+                      text: 'View Booking',
                       textStyle: boldTextStyle(size: 14, color: Colors.white),
                       color: context.primaryColor,
                       onTap: () {
-                        DashboardScreen().launch(context, isNewTask: true);
+                        DashboardScreen(redirectToBooking: true).launch(context, isNewTask: true, pageRouteAnimation: PageRouteAnimation.Fade);
+                        BookingDetailScreen(bookingId: widget.bookingId.validate()).launch(context);
                       },
                     ).expand(),
                     16.width,
                     AppButton(
                       padding: EdgeInsets.zero,
-                      text: language.goToReview,
+                      text: language.goToHome,
                       textStyle: boldTextStyle(size: 12),
                       shapeBorder: RoundedRectangleBorder(borderRadius: radius(), side: BorderSide(color: primaryColor)),
                       color: context.scaffoldBackgroundColor,
                       onTap: () {
-                        DashboardScreen(redirectToBooking: true).launch(context, isNewTask: true, pageRouteAnimation: PageRouteAnimation.Fade);
-                        BookingDetailScreen(bookingId: widget.bookingId.validate()).launch(context);
+                        DashboardScreen().launch(context, isNewTask: true);
                       },
                     ).expand(),
                   ],

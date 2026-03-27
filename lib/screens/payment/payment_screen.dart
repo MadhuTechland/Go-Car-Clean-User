@@ -28,6 +28,7 @@ import '../../services/stripe_service_new.dart';
 import '../../utils/configs.dart';
 import '../../utils/model_keys.dart';
 import '../dashboard/dashboard_screen.dart';
+import 'payment_success_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
   final BookingDetailResponse bookings;
@@ -319,7 +320,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
     appStore.setLoading(true);
     savePayment(request).then((value) {
       appStore.setLoading(false);
-      push(DashboardScreen(redirectToBooking: true), isNewTask: true, pageRouteAnimation: PageRouteAnimation.Fade);
+      push(
+        PaymentSuccessScreen(
+          bookingId: widget.bookings.bookingDetail!.id.validate(),
+          totalAmountPaid: totalAmount,
+          isAdvancePayment: widget.isForAdvancePayment,
+        ),
+        isNewTask: true,
+        pageRouteAnimation: PageRouteAnimation.Fade,
+      );
     }).catchError((e) {
       toast(e.toString());
       appStore.setLoading(false);
@@ -399,58 +408,34 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       return toast(language.chooseAnyOnePayment);
                     }
 
-                    if (currentPaymentMethod!.type == PAYMENT_METHOD_COD || currentPaymentMethod!.type == PAYMENT_METHOD_FROM_WALLET) {
-                      if (currentPaymentMethod!.type == PAYMENT_METHOD_FROM_WALLET) {
-                        appStore.setLoading(true);
-                        num walletBalance = await getUserWalletBalance();
+                    if (currentPaymentMethod!.type == PAYMENT_METHOD_FROM_WALLET) {
+                      appStore.setLoading(true);
+                      num walletBalance = await getUserWalletBalance();
+                      appStore.setLoading(false);
 
-                        appStore.setLoading(false);
-                        if (walletBalance >= totalAmount) {
+                      if (walletBalance >= totalAmount) {
+                        _handleClick();
+                      } else {
+                        toast(language.insufficientBalanceMessage);
+
+                        if (appConfigurationStore.onlinePaymentStatus) {
                           showConfirmDialogCustom(
                             context,
                             dialogType: DialogType.CONFIRMATION,
-                            title: "${language.lblPayWith} ${currentPaymentMethod!.title.validate()}?",
-                            primaryColor: primaryColor,
+                            title: language.doYouWantToTopUpYourWallet,
                             positiveText: language.lblYes,
-                            negativeText: language.lblCancel,
+                            negativeText: language.lblNo,
+                            cancelable: false,
+                            primaryColor: context.primaryColor,
                             onAccept: (p0) {
-                              _handleClick();
+                              pop();
+                              push(UserWalletBalanceScreen());
+                            },
+                            onCancel: (p0) {
+                              pop();
                             },
                           );
-                        } else {
-                          toast(language.insufficientBalanceMessage);
-
-                          if (appConfigurationStore.onlinePaymentStatus) {
-                            showConfirmDialogCustom(
-                              context,
-                              dialogType: DialogType.CONFIRMATION,
-                              title: language.doYouWantToTopUpYourWallet,
-                              positiveText: language.lblYes,
-                              negativeText: language.lblNo,
-                              cancelable: false,
-                              primaryColor: context.primaryColor,
-                              onAccept: (p0) {
-                                pop();
-                                push(UserWalletBalanceScreen());
-                              },
-                              onCancel: (p0) {
-                                pop();
-                              },
-                            );
-                          }
                         }
-                      } else {
-                        showConfirmDialogCustom(
-                          context,
-                          dialogType: DialogType.CONFIRMATION,
-                          title: "${language.lblPayWith} ${currentPaymentMethod!.title.validate()}?",
-                          primaryColor: primaryColor,
-                          positiveText: language.lblYes,
-                          negativeText: language.lblCancel,
-                          onAccept: (p0) {
-                            _handleClick();
-                          },
-                        );
                       }
                     } else {
                       _handleClick().catchError((e) {

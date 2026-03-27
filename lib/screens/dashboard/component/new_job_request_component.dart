@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nb_utils/nb_utils.dart';
 
 import '../../../main.dart';
-import '../../auth/sign_in_screen.dart';
+import '../../auth/phone_entry_screen.dart';
 import '../../jobRequest/my_post_request_list_screen.dart';
 
 class NewJobRequestComponent extends StatelessWidget {
@@ -51,7 +51,7 @@ class NewJobRequestComponent extends StatelessWidget {
                 MyPostRequestListScreen().launch(context);
               } else {
                 setStatusBarColor(Colors.black, statusBarIconBrightness: Brightness.dark);
-                bool? res = await SignInScreen(returnExpected: true).launch(context);
+                bool? res = await PhoneEntryScreen(returnExpected: true).launch(context);
 
                 if (res ?? false) {
                   MyPostRequestListScreen().launch(context);

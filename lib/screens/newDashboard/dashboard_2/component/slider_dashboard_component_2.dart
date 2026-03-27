@@ -17,8 +17,19 @@ class SliderDashboardComponent2 extends StatefulWidget {
   _SliderDashboardComponent2State createState() => _SliderDashboardComponent2State();
 }
 
+const _fallbackSliderImages = [
+  'assets/images/slider_car_wash_1.jpg',
+  'assets/images/slider_car_wash_2.jpg',
+  'assets/images/slider_car_wash_3.jpg',
+  'assets/images/slider_car_wash_4.jpg',
+];
+
 class _SliderDashboardComponent2State extends State<SliderDashboardComponent2> {
   int _currentPage = 0;
+
+  bool _isDefaultImage(String url) {
+    return url.isEmpty || url.contains('default.png') || url.contains('default.jpg');
+  }
 
   @override
   void initState() {
@@ -32,11 +43,26 @@ class _SliderDashboardComponent2State extends State<SliderDashboardComponent2> {
 
   @override
   Widget build(BuildContext context) {
+    final bool useLocalFallback = widget.sliderList.isEmpty ||
+        widget.sliderList.every((s) => _isDefaultImage(s.sliderImage.validate()));
+    final int itemCount = useLocalFallback ? _fallbackSliderImages.length : widget.sliderList.length;
+
     return Column(
       children: [
-        widget.sliderList.isNotEmpty
+        itemCount > 0
             ? CarouselSlider(
-                items: List.generate(widget.sliderList.length, (index) {
+                items: List.generate(itemCount, (index) {
+                  if (useLocalFallback || _isDefaultImage(widget.sliderList[index].sliderImage.validate())) {
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        _fallbackSliderImages[index % _fallbackSliderImages.length],
+                        height: 200,
+                        width: context.width(),
+                        fit: BoxFit.cover,
+                      ),
+                    );
+                  }
                   SliderModel data = widget.sliderList[index];
                   return CachedImageWidget(
                     url: data.sliderImage.validate(),
@@ -66,11 +92,11 @@ class _SliderDashboardComponent2State extends State<SliderDashboardComponent2> {
                 ),
               )
             : CachedImageWidget(url: '', height: 200, width: context.width()),
-        if (widget.sliderList.length.validate() > 1)
+        if (itemCount > 1)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
-              widget.sliderList.length,
+              itemCount,
               (index) => AnimatedContainer(
                 duration: Duration(milliseconds: 300),
                 margin: EdgeInsets.symmetric(horizontal: 0),
@@ -85,7 +111,7 @@ class _SliderDashboardComponent2State extends State<SliderDashboardComponent2> {
                           topRight: Radius.circular(_currentPage == index ? 5 : 0),
                           bottomRight: Radius.circular(_currentPage == index ? 5 : 0),
                         )
-                      : widget.sliderList.length - 1 == index
+                      : itemCount - 1 == index
                           ? BorderRadius.only(
                               topRight: Radius.circular(5),
                               bottomRight: Radius.circular(5),

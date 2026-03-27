@@ -2,6 +2,7 @@ import 'package:booking_system_flutter/component/cached_image_widget.dart';
 import 'package:booking_system_flutter/component/dotted_line.dart';
 import 'package:booking_system_flutter/main.dart';
 import 'package:booking_system_flutter/model/booking_data_model.dart';
+import 'package:booking_system_flutter/utils/colors.dart';
 import 'package:booking_system_flutter/utils/images.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -733,9 +734,9 @@ TextButton(
                                 ),
                                 Row(
                                   children: [
-                                    const Icon(Icons.info_outline,
+                                    Icon(Icons.info_outline,
                                         size: 16,
-                                        color: Colors.blue), // 👈 blue icon
+                                        color: context.primaryColor),
                                     const SizedBox(width: 4),
                                     const Text(
                                       "₹49",
@@ -1415,8 +1416,8 @@ TextButton(
           /// 🔹 Image
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              imagePath,
+            child: CachedImageWidget(
+              url: imagePath,
               width: 40,
               height: 40,
               fit: BoxFit.cover,
@@ -1444,8 +1445,8 @@ TextButton(
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(),
-            child: const Icon(Icons.check_box_rounded,
-                color: Colors.blue, size: 20),
+            child: Icon(Icons.check_box_rounded,
+                color: primaryColor, size: 20),
           ),
         ],
       ),

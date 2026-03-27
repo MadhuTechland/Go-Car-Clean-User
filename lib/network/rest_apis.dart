@@ -51,6 +51,14 @@ Future<LoginResponse> createUser(Map request) async {
   return LoginResponse.fromJson(await (handleResponse(await buildHttpResponse('register', request: request, method: HttpMethodType.POST))));
 }
 
+Future<void> sendPhoneOtp(Map request) async {
+  await handleResponse(await buildHttpResponse('send-phone-otp', request: request, method: HttpMethodType.POST));
+}
+
+Future<LoginResponse> loginWithPhoneOtp(Map request) async {
+  return LoginResponse.fromJson(await handleResponse(await buildHttpResponse('login-phone-otp', request: request, method: HttpMethodType.POST)));
+}
+
 Future<LoginResponse> loginUser(Map request, {bool isSocialLogin = false}) async {
   try {
     LoginResponse res = LoginResponse.fromJson(await handleResponse(await buildHttpResponse(isSocialLogin ? 'social-login' : 'login', request: request, method: HttpMethodType.POST)));
@@ -299,11 +307,13 @@ Future<DashboardResponse> userDashboard({bool isCurrentLocation = false, double?
 
   String endPoint = 'dashboard-detail';
 
-  if (isCurrentLocation && appStore.isLoggedIn && appStore.userId.validate() != 0) {
-    endPoint = "$endPoint?latitude=$lat&longitude=$long&customer_id=${appStore.userId.validate()}";
-  } else if (isCurrentLocation) {
-    endPoint = "$endPoint?latitude=$lat&longitude=$long";
-  } else if (appStore.isLoggedIn && appStore.userId.validate() != 0) {
+  // TODO: Temporarily disabled location filtering — show all services
+  // if (isCurrentLocation && appStore.isLoggedIn && appStore.userId.validate() != 0) {
+  //   endPoint = "$endPoint?latitude=$lat&longitude=$long&customer_id=${appStore.userId.validate()}";
+  // } else if (isCurrentLocation) {
+  //   endPoint = "$endPoint?latitude=$lat&longitude=$long";
+  // } else
+  if (appStore.isLoggedIn && appStore.userId.validate() != 0) {
     endPoint = "$endPoint?customer_id=${appStore.userId.validate()}";
   }
 
@@ -428,8 +438,9 @@ Future<List<ServiceData>> searchServiceAPI({
   String isPriceMinPara = isPriceMin.isNotEmpty ? 'is_price_min=$isPriceMin&' : '';
   String isPriceMaxPara = isPriceMax.isNotEmpty ? 'is_price_max=$isPriceMax&' : '';
   String ratingPara = ratingId.isNotEmpty ? 'is_rating=$ratingId&' : '';
-  String latitudes = latitude.isNotEmpty ? 'latitude=$latitude&' : '';
-  String longitudes = longitude.isNotEmpty ? 'longitude=$longitude&' : '';
+  // TODO: Temporarily disabled location filtering — show all services
+  String latitudes = '';
+  String longitudes = '';
   String isFeatures = isFeatured.isNotEmpty ? 'is_featured=$isFeatured&' : '';
   String subCategorys = subCategory.validate().isNotEmpty
       ? subCategory != "-1"

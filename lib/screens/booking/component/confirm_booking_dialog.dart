@@ -1,12 +1,10 @@
 import 'package:booking_system_flutter/component/loader_widget.dart';
-import 'package:booking_system_flutter/generated/assets.dart';
 import 'package:booking_system_flutter/main.dart';
 import 'package:booking_system_flutter/model/package_data_model.dart';
 import 'package:booking_system_flutter/model/service_detail_response.dart';
 import 'package:booking_system_flutter/network/rest_apis.dart';
 import 'package:booking_system_flutter/screens/service/service_detail_screen.dart';
 import 'package:booking_system_flutter/utils/colors.dart';
-import 'package:booking_system_flutter/utils/extensions/num_extenstions.dart';
 import 'package:booking_system_flutter/utils/model_keys.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -92,10 +90,13 @@ class _ConfirmBookingDialogState extends State<ConfirmBookingDialog> {
   "customer_phone": widget.customerPhone,
   "service_plan_id": widget.selectedPlanId ?? 0,
   "extra_vehicles": widget.selectedExtraVehicles.map((e) => {
-    'service_id': 134,
+    'service_id': e.serviceId ?? widget.data.serviceDetail!.id,
     'service_plan_id': e.planId,
     'quantity': 1,
     'price': double.tryParse(e.price.toString().replaceAll(RegExp(r'[^\d.]'), '')) ?? 0,
+    'vehicle_name': e.vehicleName,
+    'vehicle_type': e.vehicleType,
+    'vehicle_model': e.model,
   }).toList(),
   "booking_at": widget.selectedWashWhere == 0 ? "home" : "shed",
     };
@@ -148,67 +149,199 @@ class _ConfirmBookingDialogState extends State<ConfirmBookingDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = appStore.isDarkMode;
+
     return Observer(
       builder: (context) {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Header with icon
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(language.lblConfirmBooking, style: boldTextStyle(size: 16)),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: context.primaryColor.withOpacity(isDark ? 0.15 : 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.event_available_rounded, color: context.primaryColor, size: 24),
+                ),
+                12.width,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(language.lblConfirmBooking, style: boldTextStyle(size: 18)),
+                      4.height,
+                      Text(language.wouldYouLikeTo, style: secondaryTextStyle(size: 12)),
+                    ],
+                  ),
+                ),
                 GestureDetector(
-                  onTap: () {
-                    finish(context);
-                  },
-                  child: Image.asset(
-                    Assets.iconsIcClose,
-                    height: 20.0,
-                    color: context.iconColor,
+                  onTap: () => finish(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white10 : Colors.grey.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close_rounded, size: 18, color: isDark ? Colors.white54 : Colors.grey.shade600),
                   ),
                 ),
               ],
             ),
-            Divider(),
-            10.height,
-            Text(language.wouldYouLikeTo, textAlign: TextAlign.left, style: secondaryTextStyle(size: 14, color: appTextSecondaryColor, weight: FontWeight.w600)),
-            16.height,
+            20.height,
+
+            // Booking details card
             Container(
-              padding: EdgeInsets.all(14),
-              decoration: boxDecorationWithRoundedCorners(borderRadius: BorderRadius.circular(8), backgroundColor: appStore.isDarkMode ? context.dividerColor : dashboard3CardColor),
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? context.dividerColor : const Color(0xFFF8F9FB),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  serviceDetailsWidget("${language.serviceName}:", widget.data.serviceDetail?.name.validate() ?? "", false).visible(widget.selectedPackage == null),
-                  serviceDetailsWidget("${language.packageName}:", widget.selectedPackage?.name.validate() ?? "", false).visible(widget.selectedPackage != null),
-                  serviceDetailsWidget("${language.lblDateAndTime}",widget.data.serviceDetail!.isSlotAvailable?getConfirmBookingDateFormat(date: "${widget.data.serviceDetail!.bookingDate} ${widget.data.serviceDetail!.bookingSlot}"): getConfirmBookingDateFormat(date: widget.data.serviceDetail!.dateTimeVal.validate()), false),
-                  serviceDetailsWidget("${language.price}:",widget.data.serviceDetail!.isFreeService? "Free" :  widget.bookingPrice.validate().toStringAsFixed(getIntAsync(PRICE_DECIMAL_POINTS)), !widget.data.serviceDetail!.isFreeService)
+                  // Service / Package
+                  if (widget.selectedPackage == null)
+                    _confirmDetailRow(Icons.local_car_wash_rounded, language.serviceName, widget.data.serviceDetail?.name.validate() ?? "")
+                  else
+                    _confirmDetailRow(Icons.inventory_2_outlined, language.packageName, widget.selectedPackage?.name.validate() ?? ""),
+
+                  // Plan
+                  if (widget.selectedPlanId != null && widget.data.serviceDetail?.plans != null)
+                    Builder(builder: (_) {
+                      final plan = widget.data.serviceDetail!.plans!.firstWhere(
+                        (p) => p.id == widget.selectedPlanId,
+                        orElse: () => ServicePlanData(),
+                      );
+                      if (plan.name != null) return _confirmDetailRow(Icons.workspace_premium_rounded, "Plan", plan.name!);
+                      return SizedBox();
+                    }),
+
+                  // Date & Time
+                  _confirmDetailRow(
+                    Icons.calendar_today_rounded,
+                    language.lblDateAndTime,
+                    widget.data.serviceDetail!.isSlotAvailable
+                        ? getConfirmBookingDateFormat(date: "${widget.data.serviceDetail!.bookingDate} ${widget.data.serviceDetail!.bookingSlot}")
+                        : getConfirmBookingDateFormat(date: widget.data.serviceDetail!.dateTimeVal.validate()),
+                  ),
+
+                  // Wash location
+                  _confirmDetailRow(
+                    widget.selectedWashWhere == 0 ? Icons.home_rounded : Icons.warehouse_rounded,
+                    "Wash At",
+                    widget.selectedWashWhere == 0 ? "Home" : "Shed",
+                  ),
+
+                  // Price
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: context.primaryColor.withOpacity(isDark ? 0.12 : 0.06),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Total Amount", style: boldTextStyle(size: 14)),
+                          Text(
+                            widget.data.serviceDetail!.isFreeService
+                                ? "Free"
+                                : '₹${widget.bookingPrice.validate().toStringAsFixed(getIntAsync(PRICE_DECIMAL_POINTS))}',
+                            style: boldTextStyle(size: 16, color: context.primaryColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Extra vehicles
+                  if (widget.selectedExtraVehicles.isNotEmpty) ...[
+                    12.height,
+                    Text("Extra Vehicles", style: boldTextStyle(size: 13, color: isDark ? Colors.white70 : Colors.grey.shade700)),
+                    8.height,
+                    ...widget.selectedExtraVehicles.map((ev) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.directions_car_outlined, size: 14, color: context.primaryColor),
+                          8.width,
+                          Expanded(child: Text(ev.vehicleName, style: primaryTextStyle(size: 12))),
+                          Text('₹${ev.price.toStringAsFixed(0)}', style: boldTextStyle(size: 12, color: context.primaryColor)),
+                        ],
+                      ),
+                    )),
+                  ],
+
+                  // Advance payment
+                  if (widget.data.serviceDetail!.isAdvancePayment && !widget.data.serviceDetail!.isFreeService && widget.data.serviceDetail!.isFixedService)
+                    Builder(builder: (_) {
+                      final pct = widget.data.serviceDetail!.advancePaymentPercentage.validate();
+                      final advAmt = (widget.bookingPrice.validate() * pct / 100);
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          children: [
+                            Icon(Icons.payment_rounded, size: 16, color: Colors.orange),
+                            8.width,
+                            Text("Advance (${pct.toStringAsFixed(0)}%)", style: secondaryTextStyle(size: 12)),
+                            const Spacer(),
+                            Text(
+                              '₹${advAmt.toStringAsFixed(getIntAsync(PRICE_DECIMAL_POINTS))}',
+                              style: boldTextStyle(size: 12, color: Colors.orange),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                 ],
               ),
             ),
-            16.height,
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(14),
-              decoration: boxDecorationWithRoundedCorners(
-                borderRadius: BorderRadius.circular(8),
-                backgroundColor: cancellationsBgColor,
+
+            // Cancellation notice
+            if (!widget.data.serviceDetail!.isFreeService && appConfigurationStore.cancellationCharge) ...[
+              12.height,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(isDark ? 0.08 : 0.04),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.withOpacity(0.15)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 16, color: Colors.red.shade400),
+                    8.width,
+                    Expanded(
+                      child: Text(
+                        '${language.a} ${appConfigurationStore.cancellationChargeAmount}% ${language.feeAppliesForCancellations} ${appConfigurationStore.cancellationChargeHours} ${language.hoursOfTheScheduled}',
+                        style: secondaryTextStyle(size: 11, color: Colors.red.shade400, fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Text(
-                '* ${language.a} ${appConfigurationStore.cancellationChargeAmount}% ${language.feeAppliesForCancellations} ${appConfigurationStore.cancellationChargeHours} ${language.hoursOfTheScheduled}',
-                style: secondaryTextStyle(size: 10, color: redColor, fontStyle: FontStyle.italic, weight: FontWeight.w600),
-              ),
-            ).visible(!widget.data.serviceDetail!.isFreeService && appConfigurationStore.cancellationCharge),
+            ],
+
             16.height,
+
+            // Terms checkbox
             ExcludeSemantics(
               child: CheckboxListTile(
                 checkboxShape: RoundedRectangleBorder(borderRadius: radius(4)),
                 autofocus: false,
                 activeColor: context.primaryColor,
-                checkColor: appStore.isDarkMode ? context.iconColor : context.cardColor,
+                checkColor: isDark ? context.iconColor : context.cardColor,
                 value: isSelected,
                 onChanged: (val) async {
                   isSelected = !isSelected;
@@ -216,19 +349,19 @@ class _ConfirmBookingDialogState extends State<ConfirmBookingDialog> {
                 },
                 title: RichTextWidget(
                   list: [
-                    TextSpan(text: '${language.byConfirmingYouAgree} ', style: secondaryTextStyle(size: 14, fontFamily: fontFamilySecondaryGlobal)),
+                    TextSpan(text: '${language.byConfirmingYouAgree} ', style: secondaryTextStyle(size: 13, fontFamily: fontFamilySecondaryGlobal)),
                     TextSpan(
                       text: language.lblTermsOfService,
-                      style: boldTextStyle(color: primaryColor, size: 14),
+                      style: boldTextStyle(color: primaryColor, size: 13),
                       recognizer: TapGestureRecognizer()
                         ..onTap = () {
                           checkIfLink(context, appConfigurationStore.termConditions, title: language.termsCondition);
                         },
                     ),
-                    TextSpan(text: ' ${language.and} ', style: secondaryTextStyle()),
+                    TextSpan(text: ' ${language.and} ', style: secondaryTextStyle(size: 13)),
                     TextSpan(
                       text: language.privacyPolicy,
-                      style: boldTextStyle(color: primaryColor, size: 14),
+                      style: boldTextStyle(color: primaryColor, size: 13),
                       recognizer: TapGestureRecognizer()
                         ..onTap = () {
                           checkIfLink(context, appConfigurationStore.privacyPolicy, title: language.privacyPolicy);
@@ -240,25 +373,57 @@ class _ConfirmBookingDialogState extends State<ConfirmBookingDialog> {
                 contentPadding: EdgeInsets.zero,
               ),
             ),
-            32.height,
-            AppButton(
-              width: context.width(),
-              text: language.confirm,
-              textColor: isSelected ? Colors.white : darkGray,
-              color: isSelected ? context.primaryColor : context.dividerColor,
-              onTap: () {
-                if (isSelected) {
-                  bookServices();
-                } else {
-                  toast(language.termsConditionsAccept);
-                }
-              },
+            24.height,
+
+            // Confirm button
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: isSelected
+                    ? LinearGradient(colors: [context.primaryColor, context.primaryColor.withOpacity(0.85)])
+                    : null,
+                color: isSelected ? null : (isDark ? Colors.white10 : Colors.grey.shade200),
+                boxShadow: isSelected
+                    ? [BoxShadow(color: context.primaryColor.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
+                    : [],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    if (isSelected) {
+                      bookServices();
+                    } else {
+                      toast(language.termsConditionsAccept);
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle_outline, color: isSelected ? Colors.white : (isDark ? Colors.white38 : Colors.grey), size: 20),
+                        8.width,
+                        Text(
+                          language.confirm,
+                          style: boldTextStyle(
+                            size: 16,
+                            color: isSelected ? Colors.white : (isDark ? Colors.white38 : Colors.grey),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
+            8.height,
             TextButton(
-                onPressed: () {
-                  finish(context);
-                },
-                child: Text(language.lblCancel, style: boldTextStyle(size: 14, color: primaryColor, decoration: TextDecoration.underline, decorationColor: primaryColor)))
+              onPressed: () => finish(context),
+              child: Text(language.lblCancel, style: boldTextStyle(size: 14, color: isDark ? Colors.white54 : Colors.grey.shade600)),
+            ),
           ],
         ).visible(
           !appStore.isLoading,
@@ -267,15 +432,36 @@ class _ConfirmBookingDialogState extends State<ConfirmBookingDialog> {
       },
     );
   }
+
+  Widget _confirmDetailRow(IconData icon, String label, String value) {
+    final isDark = appStore.isDarkMode;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: context.primaryColor.withOpacity(isDark ? 0.12 : 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: context.primaryColor),
+          ),
+          10.width,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: secondaryTextStyle(size: 11, color: isDark ? Colors.white38 : Colors.grey.shade500)),
+                3.height,
+                Text(value, style: boldTextStyle(size: 13)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-Widget serviceDetailsWidget(String title, String value, bool isPrice) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.start,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(title, style: secondaryTextStyle(size: 10, color: appStore.isDarkMode ? darkGray : appTextSecondaryColor)).expand(flex: 2),
-      Text(isPrice ? num.parse(value.toString()).toPriceFormat() : value, style: boldTextStyle(size: 10)).expand(flex: 3),
-    ],
-  ).paddingBottom(6.0);
-}

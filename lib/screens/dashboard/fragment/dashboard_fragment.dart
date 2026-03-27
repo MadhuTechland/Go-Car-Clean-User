@@ -17,6 +17,7 @@ import '../../../component/loader_widget.dart';
 import '../component/booking_confirmed_component.dart';
 import '../component/new_job_request_component.dart';
 import '../component/promotional_banner_slider_component.dart';
+import '../component/quick_action_component.dart';
 
 class DashboardFragment extends StatefulWidget {
   @override
@@ -118,14 +119,15 @@ class _DashboardFragmentState extends State<DashboardFragment> {
                         setState(() {});
                       },
                     ),
-                    30.height,
+                    // Quick Action Cards
+                    const QuickActionComponent(),
+                    24.height,
                     PendingBookingComponent(upcomingConfirmedBooking: snap.upcomingData),
                     CategoryComponent(categoryList: snap.category.validate()),
-                    if (snap.promotionalBanner.validate().isNotEmpty  && appConfigurationStore.isPromotionalBanner)
+                    if (snap.promotionalBanner.validate().isNotEmpty && appConfigurationStore.isPromotionalBanner)
                       PromotionalBannerSliderComponent(
                         promotionalBannerList: snap.promotionalBanner.validate(),
                       ).paddingTop(16),
-                    16.height,
                     ServiceListComponent(serviceList: snap.service.validate()),
                     FeaturedServiceListComponent(serviceList: snap.featuredServices.validate()),
                     16.height,

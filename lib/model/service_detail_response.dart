@@ -456,6 +456,9 @@ class ExtraVehicle {
   List<String>? serviceImages;  // 👈 new
   int? servicePlanId;
   String? planName;      // 👈 new
+  String? vehicleName;
+  String? vehicleType;
+  String? vehicleModel;
   int? quantity;
   num? price;
   String? status;
@@ -470,6 +473,9 @@ class ExtraVehicle {
     this.serviceImages,
     this.servicePlanId,
     this.planName,
+    this.vehicleName,
+    this.vehicleType,
+    this.vehicleModel,
     this.quantity,
     this.price,
     this.status,
@@ -497,6 +503,9 @@ class ExtraVehicle {
           ? json['service_plan_id']
           : int.tryParse(json['service_plan_id'].toString()),
       planName: json['plan_name']?.toString(),
+      vehicleName: json['vehicle_name']?.toString(),
+      vehicleType: json['vehicle_type']?.toString(),
+      vehicleModel: json['vehicle_model']?.toString(),
 
       quantity: json['quantity'] is int
           ? json['quantity']
@@ -521,6 +530,9 @@ class ExtraVehicle {
       'service_image': serviceImages,
       'service_plan_id': servicePlanId,
       'plan_name': planName,
+      'vehicle_name': vehicleName,
+      'vehicle_type': vehicleType,
+      'vehicle_model': vehicleModel,
       'quantity': quantity,
       'price': price,
       'status': status,
@@ -534,15 +546,19 @@ class ExtraVehicle {
 class SelectedVehiclePlan {
   final String vehicleType; // e.g., "Car" or "Bike"
   final String vehicleName; // e.g., "Swift"
-  final String model; // e.g., "VXI"
-  final double price; // e.g., "₹400"
-  final int planId;
+  final String model; // e.g., "Maruti Suzuki"
+  final double price; // e.g., 400.0
+  final int? planId;
+  final int? serviceId;
+  final String planName; // e.g., "Premium Plan"
 
   SelectedVehiclePlan({
     required this.vehicleType,
     required this.vehicleName,
     required this.model,
     required this.price,
-    required this.planId,
+    this.planId,
+    this.serviceId,
+    this.planName = '',
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:nb_utils/nb_utils.dart';
 
+import '../../../component/cached_image_widget.dart';
 import '../../../component/price_widget.dart';
 import '../../../component/view_all_label_component.dart';
 import '../../../main.dart';
@@ -90,7 +91,7 @@ class _AddonComponentState extends State<AddonComponent> {
             borderRadius: BorderRadius.circular(8),
             child: addon.serviceAddonImage.isNotEmpty
                 ? Image.network(
-                    addon.serviceAddonImage,
+                    rewriteImageUrl(addon.serviceAddonImage),
                     width: 50,
                     height: 50,
                     fit: BoxFit.cover,
@@ -182,7 +183,7 @@ class _AddonComponentState extends State<AddonComponent> {
             borderRadius: BorderRadius.circular(8),
             child: data.serviceAddonImage.isNotEmpty
                 ? Image.network(
-                    data.serviceAddonImage,
+                    rewriteImageUrl(data.serviceAddonImage),
                     width: 50,
                     height: 50,
                     fit: BoxFit.cover,
@@ -241,7 +242,7 @@ class _AddonComponentState extends State<AddonComponent> {
           data.isSelected
               ? Icons.check_box_rounded // ✅ Selected
               : Icons.check_box_outline_blank, // ⬜ Not selected
-          color: data.isSelected ? Colors.blue : Colors.grey,
+          color: data.isSelected ? context.primaryColor : Colors.grey,
           size: 24,
         ),
       ),

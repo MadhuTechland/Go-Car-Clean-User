@@ -66,7 +66,21 @@ List<ServicePlanData>? plans;
 
   bool get isFixedService => type.validate() == SERVICE_TYPE_FIXED;
 
-  bool get isFreeService => price.validate() == 0;
+  bool get isFreeService => price.validate() == 0 && (plans == null || plans!.isEmpty);
+
+  /// Returns the minimum plan price, or null if no plans
+  num? get minPlanPrice {
+    if (plans == null || plans!.isEmpty) return null;
+    final amounts = plans!.map((p) => num.tryParse(p.amount ?? '0') ?? 0).toList();
+    amounts.sort();
+    return amounts.first;
+  }
+
+  /// Returns the effective display price: service price if > 0, otherwise min plan price
+  num get effectivePrice {
+    if (price.validate() > 0) return price.validate();
+    return minPlanPrice ?? 0;
+  }
 
   bool get isAdvancePayment =>
       isEnableAdvancePayment.validate() == 1 &&
